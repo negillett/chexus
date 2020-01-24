@@ -40,7 +40,7 @@ class Client(object):
     def _should_upload(checksum, bucket):
         LOG.info("Checking upload item...")
 
-        if bucket.objects.filter(Prefix=checksum):
+        if list(bucket.objects.filter(Prefix=checksum)):
             LOG.info("Content already present in s3 bucket")
             return False
         return True
