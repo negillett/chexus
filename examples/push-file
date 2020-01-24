@@ -91,7 +91,7 @@ def main():
     p = parser.parse_args()
 
     if p.debug:
-        logging.getLogger("chexus.pulplib").setLevel(logging.DEBUG)
+        logging.getLogger("chexus").setLevel(logging.DEBUG)
         LOG.setLevel(logging.DEBUG)
 
     client = Client(
