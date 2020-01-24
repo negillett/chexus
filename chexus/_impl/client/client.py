@@ -185,6 +185,7 @@ class Client(object):
                 LOG.error(
                     "Expected type 'PushItem', got '%s' instead", type(item)
                 )
+                continue
 
             self.upload(item=item, bucket_name=bucket_name, dryrun=dryrun)
             self.publish(
