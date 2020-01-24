@@ -40,15 +40,10 @@ class Client(object):
     def _should_upload(checksum, bucket):
         LOG.info("Checking upload item...")
 
-        try:
-            bucket.Object(checksum).load()
-        except ClientError as err:
-            if err.response["Error"]["Code"] == "404":
-                return True
-            raise
-
-        LOG.info("Content already present in s3 bucket")
-        return False
+        if bucket.objects.filter(Prefix=checksum):
+            LOG.info("Content already present in s3 bucket")
+            return False
+        return True
 
     def upload(self, item, bucket_name, dryrun=False):
         """Uploads an item to the specified S3 bucket.
