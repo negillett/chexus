@@ -48,6 +48,7 @@ def test_push_item():
     item = PushItem(
         file_path="tests/test_data/somefile.txt",
         web_uri="www.example.com/nothing",
+        from_date="Nov 19 2022",
         first=1,
         second=2,
         third=3,
@@ -69,7 +70,7 @@ def test_push_item():
     assert item.attrs == {
         "web_uri": "www.example.com/nothing",
         "object_key": "ee21ae5cd21ff1bb2263f7c98a8557d42646ed1ec660d9c1f7c3f4e781bc6710",
-        "from_date": str(datetime.datetime.now().date()),
+        "from_date": "2022-11-19",
         "first": 1,
         "second": 2,
         "third": 3,
