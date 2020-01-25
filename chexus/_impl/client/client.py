@@ -4,7 +4,6 @@ import os
 
 import boto3
 from boto3.dynamodb.conditions import Attr
-from botocore.exceptions import ClientError
 
 from ..models import PushItem
 
