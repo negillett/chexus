@@ -39,7 +39,9 @@ def test_publish(dryrun, caplog):
         assert "Publish complete" in caplog.text
 
 
-def test_upload_duplicate(caplog):
+def test_publish_duplicate(caplog):
+    """Publish doesn't attempt to duplicate record items"""
+
     # pylint disable=protected_member
 
     item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
@@ -78,6 +80,8 @@ def test_upload_duplicate(caplog):
 
 
 def test_publish_without_table_key(caplog):
+    """Publish catches items missing keys required by the table"""
+
     # pylint disable=protected_member
 
     item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")

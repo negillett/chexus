@@ -4,6 +4,8 @@ from chexus import Client
 
 
 class MockedClient(Client):
+    """A Client with mocked boto3 Session for testing"""
+
     def __init__(
         self,
         access_id=None,

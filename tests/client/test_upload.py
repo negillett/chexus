@@ -36,6 +36,8 @@ def test_upload(dryrun, caplog):
 
 
 def test_upload_duplicate(caplog):
+    """Upload doesn't attempt to replace file objects"""
+
     # pylint disable=protected_member
 
     item = UploadItem("tests/test_data/somefile.txt")
