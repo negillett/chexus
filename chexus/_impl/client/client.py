@@ -4,7 +4,6 @@ import os
 
 import boto3
 from boto3.dynamodb.conditions import Attr
-from botocore.exceptions import ClientError
 
 from ..models import PushItem
 
@@ -73,12 +72,8 @@ class Client(object):
 
         LOG.info("Uploading %s...", item.name)
 
-        try:
-            s3_bucket.upload_file(item.path, item.checksum)
-            LOG.info("Upload complete")
-            return
-        except ClientError:
-            LOG.info("Upload failed. %s attempts remaining. Retrying...")
+        s3_bucket.upload_file(item.path, item.checksum)
+        LOG.info("Upload complete")
 
     @staticmethod
     def _should_publish(object_key, ddb_table):

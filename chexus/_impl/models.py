@@ -43,7 +43,7 @@ class PublishItem(object):
         )
 
         # Serialize any
-        if self.attrs["metadata"]:
+        if self.attrs.get("metadata", None):
             self.attrs["metadata"] = json.dumps(self.attrs["metadata"])
 
         for key, value in self.attrs.items():
