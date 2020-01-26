@@ -1,23 +1,9 @@
 import logging
 
-import mock
 import pytest
 
-from chexus import Client, UploadItem
-
-
-def get_client():
-    fake_session = mock.MagicMock()
-    fake_session.resource.Bucket.return_value = mock.MagicMock()
-
-    with mock.patch("boto3.Session") as mock_session:
-        mock_session.return_value = fake_session
-        return Client(
-            access_id="a",
-            access_key="b",
-            session_token="c",
-            default_region="somewhere-else",
-        )
+from chexus import UploadItem
+from .mocked_client import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])
@@ -26,7 +12,7 @@ def test_upload(dryrun, caplog):
 
     item = UploadItem("tests/test_data/somefile.txt")
 
-    client = get_client()
+    client = MockedClient()
     # Searching for the file returns an iterable of matches
     client._session.resource().Bucket().objects.filter.return_value = []
 
@@ -54,7 +40,7 @@ def test_upload_duplicate(caplog):
 
     item = UploadItem("tests/test_data/somefile.txt")
 
-    client = get_client()
+    client = MockedClient()
     # Searching for the file returns an iterable of matches
     client._session.resource().Bucket().objects.filter.return_value = [
         {"ObjectSummary_obj": {"key": item.checksum, "bucket": "test_bucket"}},

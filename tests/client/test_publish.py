@@ -1,24 +1,10 @@
 import logging
 
-import mock
 import pytest
-
-from chexus import Client, PublishItem
 from boto3.dynamodb.conditions import Attr
 
-
-def get_client():
-    fake_session = mock.MagicMock()
-    fake_session.resource.Table.return_value = mock.MagicMock()
-
-    with mock.patch("boto3.Session") as mock_session:
-        mock_session.return_value = fake_session
-        return Client(
-            access_id="a",
-            access_key="b",
-            session_token="c",
-            default_region="somewhere-else",
-        )
+from chexus import PublishItem
+from .mocked_client import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])
@@ -27,7 +13,7 @@ def test_publish(dryrun, caplog):
 
     item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
 
-    client = get_client()
+    client = MockedClient()
     # Scanning the table returns a dictionary of matching record items
     client._session.resource().Table().scan.return_value = {"Items": []}
 
@@ -58,7 +44,7 @@ def test_upload_duplicate(caplog):
 
     item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
 
-    client = get_client()
+    client = MockedClient()
     # Scanning the table returns a dictionary of matching record items
     client._session.resource().Table().scan.return_value = {
         "Items": [
@@ -96,7 +82,7 @@ def test_publish_without_table_key(caplog):
 
     item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
 
-    client = get_client()
+    client = MockedClient()
     # Scanning the table returns a dictionary of matching record items
     client._session.resource().Table().scan.return_value = {"Items": []}
 
