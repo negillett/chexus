@@ -9,7 +9,7 @@ from . import MockedClient
 def test_push(mocked_publish, mocked_upload):
     item = PushItem(
         file_path="tests/test_data/somefile.txt",
-        web_uri="www.example.com/test/content/somefile.txt"
+        web_uri="www.example.com/test/content/somefile.txt",
     )
 
     # Mock upload and publish, as they're already tested
