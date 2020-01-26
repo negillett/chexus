@@ -4,7 +4,7 @@ import pytest
 from boto3.dynamodb.conditions import Attr
 
 from chexus import PublishItem
-from .mocked_client import MockedClient
+from . import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])

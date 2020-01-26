@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from chexus import UploadItem
-from .mocked_client import MockedClient
+from . import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])

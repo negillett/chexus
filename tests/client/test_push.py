@@ -1,7 +1,7 @@
 import mock
 
 from chexus import PushItem
-from .mocked_client import MockedClient
+from . import MockedClient
 
 
 @mock.patch("chexus.Client.upload")
