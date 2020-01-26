@@ -6,9 +6,8 @@ import pytest
 from chexus import Client, UploadItem
 
 
-def fake_client():
+def get_client():
     fake_session = mock.MagicMock()
-    fake_session.resource.Table.return_value = mock.MagicMock()
     fake_session.resource.Bucket.return_value = mock.MagicMock()
 
     with mock.patch("boto3.Session") as mock_session:
@@ -27,7 +26,7 @@ def test_upload(dryrun, caplog):
 
     item = UploadItem("tests/test_data/somefile.txt")
 
-    client = fake_client()
+    client = get_client()
     # Searching for the file returns an iterable of matches
     client._session.resource().Bucket().objects.filter.return_value = []
 
@@ -45,7 +44,7 @@ def test_upload(dryrun, caplog):
         assert "Would upload" in caplog.text
         tested_bucket.upload_file.assert_not_called()
     else:
-        # Should've attempted upload
+        # Should've uploaded
         tested_bucket.upload_file.assert_called_with(item.path, item.checksum)
         assert "Upload complete" in caplog.text
 
@@ -55,7 +54,7 @@ def test_upload_duplicate(caplog):
 
     item = UploadItem("tests/test_data/somefile.txt")
 
-    client = fake_client()
+    client = get_client()
     # Searching for the file returns an iterable of matches
     client._session.resource().Bucket().objects.filter.return_value = [
         {"ObjectSummary_obj": {"key": item.checksum, "bucket": "test_bucket"}},
