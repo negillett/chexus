@@ -10,10 +10,6 @@ from boto3.dynamodb.conditions import Attr
 def get_client():
     fake_session = mock.MagicMock()
     fake_session.resource.Table.return_value = mock.MagicMock()
-    fake_session.resource.Table.attribute_definitions = [
-        {"AttributeName": "object_key", "AttributeType": "S"},
-        {"AttributeName": "from_date", "AttributeType": "S"},
-    ]
 
     with mock.patch("boto3.Session") as mock_session:
         mock_session.return_value = fake_session
@@ -74,6 +70,12 @@ def test_upload_duplicate(caplog):
         ]
     }
 
+    # Expected table attributes
+    client._session.resource().Table.attribute_definitions = [
+        {"AttributeName": "object_key", "AttributeType": "S"},
+        {"AttributeName": "from_date", "AttributeType": "S"},
+    ]
+
     with caplog.at_level(logging.DEBUG):
         client.publish(item, "test_table")
 
@@ -87,3 +89,24 @@ def test_upload_duplicate(caplog):
     assert "Table already up to date" in caplog.text
     # Should not have tried to publish
     tested_table.put_item.assert_not_called()
+
+
+def test_publish_without_table_key(caplog):
+    # pylint disable=protected_member
+
+    item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
+
+    client = get_client()
+    # Scanning the table returns a dictionary of matching record items
+    client._session.resource().Table().scan.return_value = {"Items": []}
+
+    # Table contains unexpected keys
+    client._session.resource().Table().attribute_definitions = [
+        {"AttributeName": "Nope", "AttributeType": "S"}
+    ]
+
+    with pytest.raises(ValueError) as err:
+        print(item.attrs)
+        client.publish(item, "test_table")
+
+    assert str(err.value) == "Content to publish is missing key, 'Nope'"
