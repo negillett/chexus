@@ -5,7 +5,7 @@ import os
 import boto3
 from boto3.dynamodb.conditions import Attr
 
-from ..models import PushItem
+from ..models import UploadItem, PushItem
 
 LOG = logging.getLogger("chexus")
 
@@ -44,12 +44,13 @@ class Client(object):
             return False
         return True
 
-    def upload(self, item, bucket_name, dryrun=False):
+    def upload(self, items, bucket_name, dryrun=False):
         """Uploads an item to the specified S3 bucket.
 
         Args:
-            item (:class:`~pubtools.aws.UploadItem`)
-                A representation of the item to upload to the bucket.
+            items (:class:`~pubtools.aws.UploadItem`, list)
+                One or more representations of an item to upload to the
+                bucket.
 
             bucket_name (str)
                 The name of the bucket to which the item will be
@@ -61,18 +62,31 @@ class Client(object):
 
         s3_bucket = self._session.resource("s3").Bucket(bucket_name)
 
-        if not self._should_upload(item.checksum, s3_bucket):
-            return
+        if not isinstance(items, (list, tuple)):
+            items = [items]
 
-        if dryrun:
-            LOG.info(
-                "Would upload %s to the '%s' bucket", item.name, bucket_name
-            )
-            return
+        for item in items:
+            if not isinstance(item, UploadItem):
+                LOG.error(
+                    "Expected type 'UploadItem', got '%s' instead", type(item)
+                )
+                continue
 
-        LOG.info("Uploading %s...", item.name)
+            if not self._should_upload(item.checksum, s3_bucket):
+                return
 
-        s3_bucket.upload_file(item.path, item.checksum)
+            if dryrun:
+                LOG.info(
+                    "Would upload %s to the '%s' bucket",
+                    item.name,
+                    bucket_name,
+                )
+                return
+
+            LOG.info("Uploading %s...", item.name)
+
+            s3_bucket.upload_file(item.path, item.checksum)
+
         LOG.info("Upload complete")
 
     @staticmethod
@@ -177,7 +191,7 @@ class Client(object):
                 )
                 continue
 
-            self.upload(item=item, bucket_name=bucket_name, dryrun=dryrun)
+            self.upload(items=item, bucket_name=bucket_name, dryrun=dryrun)
             self.publish(
                 item=item, table_name=table_name, region=region, dryrun=dryrun
             )
