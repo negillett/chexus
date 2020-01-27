@@ -67,4 +67,4 @@ def test_upload_invalid_item(caplog):
     client = MockedClient()
 
     client.upload(items={"Item": "Invalid"}, bucket_name="test_bucket")
-    assert "Expected type 'UploadItem', got 'dict' instead"
+    assert "Expected type 'UploadItem'" in caplog.text
