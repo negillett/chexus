@@ -59,3 +59,12 @@ def test_upload_duplicate(caplog):
     assert "Content already present in s3 bucket" in caplog.text
     # Should not have tried to upload
     tested_bucket.upload_file.assert_not_called()
+
+
+def test_upload_invalid_item(caplog):
+    """Upload only accepts upload items"""
+
+    client = MockedClient()
+
+    client.upload(items={"Item": "Invalid"}, bucket_name="test_bucket")
+    assert "Expected type 'UploadItem', got 'dict' instead"
