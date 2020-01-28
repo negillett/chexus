@@ -111,10 +111,11 @@ class Client(object):
         # Report any upload failures as errors -- raising them could
         # prevent other files from uploading
         upload_errs = [ft.exception() for ft in upload_fts]
-        if upload_errs:
+        # List of errors can contain None types, which aren't helpful
+        if [err for err in upload_errs if err]:
             LOG.error(
                 "One or more exceptions occurred during upload\n\t%s",
-                "\n\t".join(str(err) for err in upload_errs if err),
+                "\n\t".join(str(err) for err in upload_errs),
             )
 
         LOG.info("Upload complete")
@@ -209,10 +210,11 @@ class Client(object):
         # Report any upload failures as errors -- raising them could
         # prevent other files from uploading
         publish_errs = [ft.exception() for ft in publish_fts]
-        if publish_errs:
+        # List of errors can contain None types, which aren't helpful
+        if [err for err in publish_errs if err]:
             LOG.error(
                 "One or more exceptions occurred during publish\n\t%s",
-                "\n\t".join(str(err) for err in publish_errs if err),
+                "\n\t".join(str(err) for err in publish_errs),
             )
 
         LOG.info("Publish complete")
