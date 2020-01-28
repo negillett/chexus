@@ -96,7 +96,7 @@ def test_publish_without_table_key(caplog):
     ]
 
     with pytest.raises(ValueError) as err:
-        print(item.attrs)
-        client.publish(item, "test_table")
+        with caplog.at_level(logging.DEBUG):
+            client.publish(item, "test_table")
 
     assert str(err.value) == "Content to publish is missing key, 'Nope'"

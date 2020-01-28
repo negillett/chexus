@@ -84,9 +84,10 @@ class Client(object):
 
         upload_fts = []
         for item in items:
-            if not isinstance(item, UploadItem):
+            if not isinstance(item, (UploadItem, PushItem)):
                 LOG.error(
-                    "Expected type 'UploadItem', got '%s' instead", type(item)
+                    "Expected type 'UploadItem' or 'PushItem', got '%s' instead",
+                    type(item),
                 )
                 continue
 
