@@ -27,7 +27,7 @@ class UploadItem(object):
 
 
 class PublishItem(object):
-    """Represents item data to publish to DynamoDB"""
+    """Represents an item to publish to DynamoDB"""
 
     def __init__(self, web_uri, object_key, from_date=None, **kwargs):
         self.web_uri = web_uri
@@ -42,12 +42,15 @@ class PublishItem(object):
             }
         )
 
-        # Serialize any
-        if self.attrs.get("metadata", None):
-            self.attrs["metadata"] = json.dumps(self.attrs["metadata"])
-
         for key, value in self.attrs.items():
-            setattr(self, key, value)
+            # Serialize any dictionaries prior to publishing
+            if isinstance(value, dict):
+                value = json.dumps(value)
+                self.attrs[key] = value
+
+            # Create any missing class attributes
+            if not hasattr(self, key):
+                setattr(self, key, value)
 
     @staticmethod
     def _valid_date(date):

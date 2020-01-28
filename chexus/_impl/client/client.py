@@ -7,7 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 from more_executors import Executors
 
-from ..models import UploadItem, PushItem
+from ..models import UploadItem, PublishItem, PushItem
 
 LOG = logging.getLogger("chexus")
 
@@ -134,12 +134,29 @@ class Client(object):
 
         return True
 
-    def publish(self, item, table_name, region=None, dryrun=False):
+    def _do_publish(self, item, table):
+        if not self._should_publish(item.object_key, table):
+            return
+
+        LOG.info("Publishing %s...", os.path.basename(item.web_uri))
+
+        attrs = table.attribute_definitions
+        for attr in attrs:
+            if not hasattr(item, attr["AttributeName"]):
+                raise ValueError(
+                    "Content to publish is missing key, '%s'"
+                    % attr["AttributeName"],
+                )
+
+        table.put_item(Item=item.attrs)
+
+    def publish(self, items, table_name, region=None, dryrun=False):
         """Publishes an item to the specified DynamoDB table.
 
         Args:
-            item (:class:`~chexus.aws.PublishItem)
-                A representation of the data to publish to the table.
+            items (:class:`~chexus.aws.PublishItem, list)
+                One or more representations of data to publish to the
+                table.
 
             table_name (str)
                 The name of the table to which the data will be
@@ -154,33 +171,49 @@ class Client(object):
             dryrun (bool)
                 If true, only log what would be published.
         """
-        ddb_table = self._session.resource(
-            "dynamodb", region_name=region
-        ).Table(table_name)
 
-        if not self._should_publish(item.object_key, ddb_table):
-            return
+        table = self._session.resource("dynamodb", region_name=region).Table(
+            table_name
+        )
 
-        if dryrun:
-            LOG.info(
-                "Would publish %s to the '%s' table with the following data;\n%s",
-                os.path.basename(item.web_uri),
-                table_name,
-                json.dumps(item.attrs, sort_keys=True, indent=4),
-            )
-            return
+        if not isinstance(items, list):
+            items = [items]
 
-        LOG.info("Publishing %s...", os.path.basename(item.web_uri))
-
-        attrs = ddb_table.attribute_definitions
-        for attr in attrs:
-            if not hasattr(item, attr["AttributeName"]):
-                raise ValueError(
-                    "Content to publish is missing key, '%s'"
-                    % attr["AttributeName"],
+        publish_fts = []
+        for item in items:
+            if not isinstance(item, (PublishItem, PushItem)):
+                LOG.error(
+                    "Expected type 'PublishItem' or 'PushItem', got '%s' instead",
+                    type(item),
                 )
+                continue
 
-        ddb_table.put_item(Item=item.attrs)
+            if dryrun:
+                LOG.info(
+                    "Would publish %s to the '%s' table with the following data;\n%s",
+                    os.path.basename(item.web_uri),
+                    table_name,
+                    json.dumps(item.attrs, sort_keys=True, indent=4),
+                )
+                continue
+
+            publish_fts.append(
+                self._executor.submit(self._do_publish, item, table)
+            )
+
+        # Block until all futures have completed
+        # Not using concurrent.futures.as_completed() due to Python 2.7
+        while not all([ft.done() for ft in publish_fts]):
+            time.sleep(1)
+
+        # Report any upload failures as errors -- raising them could
+        # prevent other files from uploading
+        publish_errs = [ft.exception() for ft in publish_fts]
+        if publish_errs:
+            LOG.error(
+                "One or more exceptions occurred during publish\n\t%s",
+                "\n\t".join(str(err) for err in publish_errs if err),
+            )
 
         LOG.info("Publish complete")
 
@@ -223,5 +256,5 @@ class Client(object):
 
             self.upload(items=item, bucket_name=bucket_name, dryrun=dryrun)
             self.publish(
-                item=item, table_name=table_name, region=region, dryrun=dryrun
+                items=item, table_name=table_name, region=region, dryrun=dryrun
             )
