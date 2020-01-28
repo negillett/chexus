@@ -1,9 +1,11 @@
 import json
 import logging
 import os
+import time
 
 import boto3
 from boto3.dynamodb.conditions import Attr
+from more_executors import Executors
 
 from ..models import UploadItem, PushItem
 
@@ -23,17 +25,24 @@ class Client(object):
         access_key=None,
         session_token=None,
         default_region=None,
+        workers_count=4,
+        retry_count=3,
     ):
         self._access_key_id = access_id
         self._access_key = access_key
         self._session_token = session_token
         self._default_region = default_region
+
         self._session = boto3.Session(
             aws_access_key_id=self._access_key_id,
             aws_secret_access_key=self._access_key,
             aws_session_token=self._session_token,
             region_name=self._default_region,
         )
+
+        self._executor = Executors.thread_pool(
+            max_workers=workers_count
+        ).with_retry(max_attempts=retry_count)
 
     @staticmethod
     def _should_upload(checksum, bucket):
@@ -43,6 +52,14 @@ class Client(object):
             LOG.info("Content already present in s3 bucket")
             return False
         return True
+
+    def _do_upload(self, item, bucket):
+        if not self._should_upload(item.checksum, bucket):
+            return
+
+        LOG.info("Uploading %s...", item.name)
+
+        bucket.upload_file(item.path, item.checksum)
 
     def upload(self, items, bucket_name, dryrun=False):
         """Uploads an item to the specified S3 bucket.
@@ -60,11 +77,12 @@ class Client(object):
                 If true, only log what would be uploaded.
         """
 
-        s3_bucket = self._session.resource("s3").Bucket(bucket_name)
+        bucket = self._session.resource("s3").Bucket(bucket_name)
 
         if not isinstance(items, (list, tuple)):
             items = [items]
 
+        upload_fts = []
         for item in items:
             if not isinstance(item, UploadItem):
                 LOG.error(
@@ -72,20 +90,31 @@ class Client(object):
                 )
                 continue
 
-            if not self._should_upload(item.checksum, s3_bucket):
-                return
-
             if dryrun:
                 LOG.info(
                     "Would upload %s to the '%s' bucket",
                     item.name,
                     bucket_name,
                 )
-                return
+                continue
 
-            LOG.info("Uploading %s...", item.name)
+            upload_fts.append(
+                self._executor.submit(self._do_upload, item, bucket)
+            )
 
-            s3_bucket.upload_file(item.path, item.checksum)
+        # Block until all futures have completed
+        # Not using concurrent.futures.as_completed() due to Python 2.7
+        while not all([ft.done() for ft in upload_fts]):
+            time.sleep(1)
+
+        # Report any upload failures as errors -- raising them could
+        # prevent other files from uploading
+        upload_errs = [ft.exception() for ft in upload_fts]
+        if upload_errs:
+            LOG.error(
+                "One or more exceptions occurred during upload\n\t%s",
+                "\n\t".join(str(err) for err in upload_errs if err),
+            )
 
         LOG.info("Upload complete")
 

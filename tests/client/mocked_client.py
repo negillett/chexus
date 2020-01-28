@@ -1,6 +1,7 @@
 import mock
 
 from chexus import Client
+from more_executors import Executors
 
 
 class MockedClient(Client):
@@ -18,6 +19,10 @@ class MockedClient(Client):
             Client.__init__(
                 self, access_id, access_key, session_token, default_region
             )
+        # Only use one retry attempt on tests
+        self._executor = Executors.thread_pool(max_workers=4).with_retry(
+            max_attempts=1
+        )
 
     @staticmethod
     def mocked_session():
