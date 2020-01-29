@@ -1,11 +1,13 @@
 import json
 import logging
 import os
+import time
 
 import boto3
 from boto3.dynamodb.conditions import Attr
+from more_executors import Executors
 
-from ..models import PushItem
+from ..models import UploadItem, PublishItem, PushItem
 
 LOG = logging.getLogger("chexus")
 
@@ -23,17 +25,24 @@ class Client(object):
         access_key=None,
         session_token=None,
         default_region=None,
+        workers_count=4,
+        retry_count=3,
     ):
         self._access_key_id = access_id
         self._access_key = access_key
         self._session_token = session_token
         self._default_region = default_region
+
         self._session = boto3.Session(
             aws_access_key_id=self._access_key_id,
             aws_secret_access_key=self._access_key,
             aws_session_token=self._session_token,
             region_name=self._default_region,
         )
+
+        self._executor = Executors.thread_pool(
+            max_workers=workers_count
+        ).with_retry(max_attempts=retry_count)
 
     @staticmethod
     def _should_upload(checksum, bucket):
@@ -44,12 +53,21 @@ class Client(object):
             return False
         return True
 
-    def upload(self, item, bucket_name, dryrun=False):
+    def _do_upload(self, item, bucket):
+        if not self._should_upload(item.checksum, bucket):
+            return
+
+        LOG.info("Uploading %s...", item.name)
+
+        bucket.upload_file(item.path, item.checksum)
+
+    def upload(self, items, bucket_name, dryrun=False):
         """Uploads an item to the specified S3 bucket.
 
         Args:
-            item (:class:`~pubtools.aws.UploadItem`)
-                A representation of the item to upload to the bucket.
+            items (:class:`~pubtools.aws.UploadItem`, list)
+                One or more representations of an item to upload to the
+                bucket.
 
             bucket_name (str)
                 The name of the bucket to which the item will be
@@ -59,20 +77,50 @@ class Client(object):
                 If true, only log what would be uploaded.
         """
 
-        s3_bucket = self._session.resource("s3").Bucket(bucket_name)
+        # Coerce items to list
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
 
-        if not self._should_upload(item.checksum, s3_bucket):
-            return
+        bucket = self._session.resource("s3").Bucket(bucket_name)
 
-        if dryrun:
-            LOG.info(
-                "Would upload %s to the '%s' bucket", item.name, bucket_name
+        upload_fts = []
+        for item in items:
+            if not isinstance(item, (UploadItem, PushItem)):
+                LOG.error(
+                    "Expected type 'UploadItem' or 'PushItem', got '%s' instead",
+                    type(item),
+                )
+                continue
+
+            if dryrun:
+                LOG.info(
+                    "Would upload %s to the '%s' bucket",
+                    item.name,
+                    bucket_name,
+                )
+                continue
+
+            upload_fts.append(
+                self._executor.submit(self._do_upload, item, bucket)
             )
-            return
 
-        LOG.info("Uploading %s...", item.name)
+        # Block until all futures have completed
+        # Not using concurrent.futures.as_completed() due to Python 2.7
+        while not all([ft.done() for ft in upload_fts]):
+            time.sleep(1)
 
-        s3_bucket.upload_file(item.path, item.checksum)
+        # Report any upload failures as errors -- raising them could
+        # prevent other files from uploading
+        upload_errs = [ft.exception() for ft in upload_fts]
+        # List of errors can contain None types, which aren't helpful
+        if [err for err in upload_errs if err]:
+            LOG.error(
+                "One or more exceptions occurred during upload\n\t%s",
+                "\n\t".join(str(err) for err in upload_errs),
+            )
+
         LOG.info("Upload complete")
 
     @staticmethod
@@ -90,12 +138,29 @@ class Client(object):
 
         return True
 
-    def publish(self, item, table_name, region=None, dryrun=False):
+    def _do_publish(self, item, table):
+        if not self._should_publish(item.object_key, table):
+            return
+
+        LOG.info("Publishing %s...", os.path.basename(item.web_uri))
+
+        attrs = table.attribute_definitions
+        for attr in attrs:
+            if not hasattr(item, attr["AttributeName"]):
+                raise ValueError(
+                    "Content to publish is missing key, '%s'"
+                    % attr["AttributeName"],
+                )
+
+        table.put_item(Item=item.attrs)
+
+    def publish(self, items, table_name, region=None, dryrun=False):
         """Publishes an item to the specified DynamoDB table.
 
         Args:
-            item (:class:`~chexus.aws.PublishItem)
-                A representation of the data to publish to the table.
+            items (:class:`~chexus.aws.PublishItem, list)
+                One or more representations of data to publish to the
+                table.
 
             table_name (str)
                 The name of the table to which the data will be
@@ -110,33 +175,53 @@ class Client(object):
             dryrun (bool)
                 If true, only log what would be published.
         """
-        ddb_table = self._session.resource(
-            "dynamodb", region_name=region
-        ).Table(table_name)
 
-        if not self._should_publish(item.object_key, ddb_table):
-            return
+        # Coerce items to list
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
 
-        if dryrun:
-            LOG.info(
-                "Would publish %s to the '%s' table with the following data;\n%s",
-                os.path.basename(item.web_uri),
-                table_name,
-                json.dumps(item.attrs, sort_keys=True, indent=4),
-            )
-            return
+        table = self._session.resource("dynamodb", region_name=region).Table(
+            table_name
+        )
 
-        LOG.info("Publishing %s...", os.path.basename(item.web_uri))
-
-        attrs = ddb_table.attribute_definitions
-        for attr in attrs:
-            if not hasattr(item, attr["AttributeName"]):
-                raise ValueError(
-                    "Content to publish is missing key, '%s'"
-                    % attr["AttributeName"],
+        publish_fts = []
+        for item in items:
+            if not isinstance(item, (PublishItem, PushItem)):
+                LOG.error(
+                    "Expected type 'PublishItem' or 'PushItem', got '%s' instead",
+                    type(item),
                 )
+                continue
 
-        ddb_table.put_item(Item=item.attrs)
+            if dryrun:
+                LOG.info(
+                    "Would publish %s to the '%s' table with the following data;\n%s",
+                    os.path.basename(item.web_uri),
+                    table_name,
+                    json.dumps(item.attrs, sort_keys=True, indent=4),
+                )
+                continue
+
+            publish_fts.append(
+                self._executor.submit(self._do_publish, item, table)
+            )
+
+        # Block until all futures have completed
+        # Not using concurrent.futures.as_completed() due to Python 2.7
+        while not all([ft.done() for ft in publish_fts]):
+            time.sleep(1)
+
+        # Report any upload failures as errors -- raising them could
+        # prevent other files from uploading
+        publish_errs = [ft.exception() for ft in publish_fts]
+        # List of errors can contain None types, which aren't helpful
+        if [err for err in publish_errs if err]:
+            LOG.error(
+                "One or more exceptions occurred during publish\n\t%s",
+                "\n\t".join(str(err) for err in publish_errs),
+            )
 
         LOG.info("Publish complete")
 
@@ -161,23 +246,45 @@ class Client(object):
                 The name of the AWS region the desired table belongs
                 to. If not provided here or to the calling client,
                 attempts to find it among environment variables and
-                ~/.aws/config file will be made.
+                configuration files will be made.
 
             dryrun (bool)
                 If true, only log what would be uploaded.
         """
 
+        # Coerce items to list
         if not isinstance(items, (list, tuple)):
             items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
 
-        for item in items:
-            if not isinstance(item, PushItem):
-                LOG.error(
-                    "Expected type 'PushItem', got '%s' instead", type(item)
-                )
-                continue
+        # Filter non-PushItems
+        push_items = [i for i in items if isinstance(i, PushItem)]
+        diff_items = [
+            i
+            for i in items + push_items
+            if i not in items or i not in push_items
+        ]
 
-            self.upload(item=item, bucket_name=bucket_name, dryrun=dryrun)
-            self.publish(
-                item=item, table_name=table_name, region=region, dryrun=dryrun
+        # Report any removed items
+        if diff_items:
+            LOG.debug(
+                "Removed the following invalid items:\n\t%s",
+                "\n\t".join(str(i) for i in diff_items),
             )
+
+        if not push_items:
+            LOG.info("No items to push")
+            return
+
+        LOG.info("Starting push...")
+        self.upload(items=push_items, bucket_name=bucket_name, dryrun=dryrun)
+
+        self.publish(
+            items=push_items,
+            table_name=table_name,
+            region=region,
+            dryrun=dryrun,
+        )
+
+        LOG.info("Push complete")
