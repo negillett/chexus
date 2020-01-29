@@ -2,7 +2,7 @@
 set -e
 
 ORG=nathanegillett
-REPO=pubtools-pulplib
+REPO=chexus
 
 enabled(){
   if [ "$TRAVIS_BRANCH" != "master" ] || [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
