@@ -21,7 +21,7 @@ def get_requirements():
 
 setup(
     name="chexus",
-    version="0.1.0",
+    version="1.0.1",
     packages=find_packages(exclude=["tests"]),
     package_data={},
     url="https://github.com/nathanegillett/chexus",
