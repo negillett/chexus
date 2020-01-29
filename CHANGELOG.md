@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- N/A
+
+## [1.0.2] - 2020-01-29
+
 ### Added
-- Introduced docs
+- Introduced API documentation
+- Added pidiff tox environment/travis ci job
 
 ### Changed
 - Removed changelog compare link for initial release
@@ -16,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Corrected changelog compare link for v1.0.0...v1.0.1
+- Various fixes related to publishing documentation
 
 ## [1.0.1] - 2020-01-29
 
@@ -27,5 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release to PyPI
 
-[Unreleased]: https://github.com/nathanegillett/chexus/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/nathanegillett/chexus/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/nathanegillett/chexus/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/nathanegillett/chexus/compare/v1.0.0...v1.0.1
