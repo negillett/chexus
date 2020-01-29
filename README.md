@@ -4,21 +4,20 @@ chexus
 A Python client for [boto3](https://aws.amazon.com/sdk-for-python/), used by
 [release-engineering](https://github.com/release-engineering)'s publishing tools.
 
+[![PyPI version](https://badge.fury.io/py/chexus.svg)](https://badge.fury.io/py/chexus)
 [![Build Status](https://travis-ci.org/nathanegillett/chexus.svg?branch=master)](https://travis-ci.org/nathanegillett/chexus)
 [![Coverage Status](https://coveralls.io/repos/github/nathanegillett/chexus/badge.svg?branch=master)](https://coveralls.io/github/nathanegillett/chexus?branch=master)
 
 - [Source](https://github.com/nathanegillett/chexus)
-
+- [PyPI](https://pypi.org/project/chexus)
 
 Installation
 ------------
 
-Not yet on PyPI.
-
-Install via setup.py.
+Install the chexus package from PyPI.
 
 ```
-cd chexus && python setup.py install 
+pip install chexus
 ```
 
 
