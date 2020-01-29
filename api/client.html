@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Client &#8212; chexus  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Models" href="models.html" />
+    <link rel="prev" title="API Reference" href="../api-reference.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="client">
+<h1>Client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="chexus.Client">
+<em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">Client</code><span class="sig-paren">(</span><em class="sig-param">access_id=None</em>, <em class="sig-param">access_key=None</em>, <em class="sig-param">session_token=None</em>, <em class="sig-param">default_region=None</em>, <em class="sig-param">workers_count=4</em>, <em class="sig-param">retry_count=3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>A client for interacting with Amazon S3 and DynamoDB.</p>
+<p>This class provides methods for uploading content to an S3 bucket
+and publishing data about these uploads to a DynamoDB table.</p>
+<dl class="method">
+<dt id="chexus.Client.upload">
+<code class="sig-name descname">upload</code><span class="sig-paren">(</span><em class="sig-param">items</em>, <em class="sig-param">bucket_name</em>, <em class="sig-param">dryrun=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.upload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads an item to the specified S3 bucket.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>items</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">UploadItem</span></code>, list) – One or more representations of an item to upload to the
+bucket.</p></li>
+<li><p><strong>bucket_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the bucket to which the item will be
+uploaded.</p></li>
+<li><p><strong>dryrun</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If true, only log what would be uploaded.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="chexus.Client.publish">
+<code class="sig-name descname">publish</code><span class="sig-paren">(</span><em class="sig-param">items</em>, <em class="sig-param">table_name</em>, <em class="sig-param">region=None</em>, <em class="sig-param">dryrun=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.publish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.publish" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publishes an item to the specified DynamoDB table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>items</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">PublishItem</span></code>, list) – One or more representations of data to publish to the
+table.</p></li>
+<li><p><strong>table_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the table to which the data will be
+published.</p></li>
+<li><p><strong>region</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the AWS region the desired table belongs
+to. If not provided here or to the calling client,
+attempts to find it among environment variables and
+~/.aws/config file will be made.</p></li>
+<li><p><strong>dryrun</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If true, only log what would be published.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="chexus.Client.push">
+<code class="sig-name descname">push</code><span class="sig-paren">(</span><em class="sig-param">items</em>, <em class="sig-param">bucket_name</em>, <em class="sig-param">table_name</em>, <em class="sig-param">region=None</em>, <em class="sig-param">dryrun=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.push"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.push" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads items to the specified S3 bucket and publishes data
+about the item to the specified DynamoDB table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>items</strong> (<a class="reference internal" href="models.html#chexus.PushItem" title="chexus.PushItem"><code class="xref py py-class docutils literal notranslate"><span class="pre">PushItem</span></code></a>, list) – One or more representations of an item to upload to the
+bucket and publish to the table.</p></li>
+<li><p><strong>bucket_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the bucket to which the item will be
+uploaded.</p></li>
+<li><p><strong>table_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the table to which the data will be
+published.</p></li>
+<li><p><strong>region</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the AWS region the desired table belongs
+to. If not provided here or to the calling client,
+attempts to find it among environment variables and
+configuration files will be made.</p></li>
+<li><p><strong>dryrun</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If true, only log what would be uploaded.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">chexus</a></h1>
+
+
+
+<p class="blurb">A library for interacting with AWS S3 and DynamoDB</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api-reference.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">Models</a></li>
+</ul>
+</li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/nathanegillett/chexus">Source</a></li>
+    
+    <li class="toctree-l1"><a href="https://pypi.org/project/chexus">PyPI</a></li>
+    
+    <li class="toctree-l1"><a href="genindex.html">Index</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api-reference.html">API Reference</a><ul>
+      <li>Previous: <a href="../api-reference.html" title="previous chapter">API Reference</a></li>
+      <li>Next: <a href="models.html" title="next chapter">Models</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Nathan Gillett.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/api/client.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/nathanegillett/chexus" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

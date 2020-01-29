@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Models &#8212; chexus  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Client" href="client.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="models">
+<h1>Models<a class="headerlink" href="#models" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="chexus.UploadItem">
+<em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">UploadItem</code><span class="sig-paren">(</span><em class="sig-param">file_path</em>, <em class="sig-param">file_name=None</em>, <em class="sig-param">checksum=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/models.html#UploadItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.UploadItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an item to upload to S3</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="chexus.PublishItem">
+<em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">PublishItem</code><span class="sig-paren">(</span><em class="sig-param">web_uri</em>, <em class="sig-param">object_key</em>, <em class="sig-param">from_date=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/models.html#PublishItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.PublishItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an item to publish to DynamoDB</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="chexus.PushItem">
+<em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">PushItem</code><span class="sig-paren">(</span><em class="sig-param">file_path</em>, <em class="sig-param">web_uri</em>, <em class="sig-param">from_date=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/models.html#PushItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.PushItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an item to upload to S3 and publish to DynamoDB</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">chexus</a></h1>
+
+
+
+<p class="blurb">A library for interacting with AWS S3 and DynamoDB</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api-reference.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="client.html">Client</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Models</a></li>
+</ul>
+</li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/nathanegillett/chexus">Source</a></li>
+    
+    <li class="toctree-l1"><a href="https://pypi.org/project/chexus">PyPI</a></li>
+    
+    <li class="toctree-l1"><a href="genindex.html">Index</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api-reference.html">API Reference</a><ul>
+      <li>Previous: <a href="client.html" title="previous chapter">Client</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Nathan Gillett.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/api/models.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/nathanegillett/chexus" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
