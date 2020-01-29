@@ -131,13 +131,5 @@ autodoc_member_order = "bysource"
 autodoc_inherit_docstrings = False
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "boto3": (
-        "https://boto3.amazonaws.com/v1/documentation/api/latest/index.html",
-        None,
-    ),
-    "botocore": (
-        "https://botocore.amazonaws.com/v1/documentation/api/latest/index.html",
-        None,
-    ),
     "more-executors": ("https://rohanpm.github.io/more-executors/", None),
 }
