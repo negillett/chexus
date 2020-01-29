@@ -77,10 +77,13 @@ class Client(object):
                 If true, only log what would be uploaded.
         """
 
-        bucket = self._session.resource("s3").Bucket(bucket_name)
-
+        # Coerce items to list
         if not isinstance(items, (list, tuple)):
             items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
+
+        bucket = self._session.resource("s3").Bucket(bucket_name)
 
         upload_fts = []
         for item in items:
@@ -173,12 +176,15 @@ class Client(object):
                 If true, only log what would be published.
         """
 
+        # Coerce items to list
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
+
         table = self._session.resource("dynamodb", region_name=region).Table(
             table_name
         )
-
-        if not isinstance(items, list):
-            items = [items]
 
         publish_fts = []
         for item in items:
@@ -240,23 +246,45 @@ class Client(object):
                 The name of the AWS region the desired table belongs
                 to. If not provided here or to the calling client,
                 attempts to find it among environment variables and
-                ~/.aws/config file will be made.
+                configuration files will be made.
 
             dryrun (bool)
                 If true, only log what would be uploaded.
         """
 
+        # Coerce items to list
         if not isinstance(items, (list, tuple)):
             items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
 
-        for item in items:
-            if not isinstance(item, PushItem):
-                LOG.error(
-                    "Expected type 'PushItem', got '%s' instead", type(item)
-                )
-                continue
+        # Filter non-PushItems
+        push_items = [i for i in items if isinstance(i, PushItem)]
+        diff_items = [
+            i
+            for i in items + push_items
+            if i not in items or i not in push_items
+        ]
 
-            self.upload(items=item, bucket_name=bucket_name, dryrun=dryrun)
-            self.publish(
-                items=item, table_name=table_name, region=region, dryrun=dryrun
+        # Report any removed items
+        if diff_items:
+            LOG.debug(
+                "Removed the following invalid items:\n\t%s",
+                "\n\t".join(str(i) for i in diff_items),
             )
+
+        if not push_items:
+            LOG.info("No items to push")
+            return
+
+        LOG.info("Starting push...")
+        self.upload(items=push_items, bucket_name=bucket_name, dryrun=dryrun)
+
+        self.publish(
+            items=push_items,
+            table_name=table_name,
+            region=region,
+            dryrun=dryrun,
+        )
+
+        LOG.info("Push complete")

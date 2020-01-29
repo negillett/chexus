@@ -98,12 +98,12 @@ def test_publish_invalid_item(caplog):
     """Doesn't attempt to publish invalid items"""
 
     # Bunch of invalid items
-    items = [
+    items = (
         {"Item": "Invalid"},
         "Not going to happen",
         UploadItem("tests/test_data/somefile.txt"),
         [2, 4, 6, 8],
-    ]
+    )
 
     client = MockedClient()
 

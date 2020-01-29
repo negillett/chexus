@@ -12,13 +12,13 @@ from . import MockedClient
 def test_upload(dryrun, caplog):
     """Can upload UploadItems and PushItems"""
 
-    items = [
+    items = (
         UploadItem("tests/test_data/somefile.txt"),
         PushItem(
             "tests/test_data/somefile2.txt",
             "www.example.com/test/content/somefile2.txt",
         ),
-    ]
+    )
 
     client = MockedClient()
     mocked_bucket = client._session.resource().Bucket()

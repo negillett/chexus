@@ -59,13 +59,14 @@ def test_push_with_invalid_item(mocked_publish, mocked_upload, caplog):
     mocked_publish.return_value = mock.MagicMock()
 
     # Bunch of invalid items
-    items = [
+    items = (
         {"Item": "Invalid"},
         "Not going to happen",
+        ("oh", "no"),
         UploadItem("tests/test_data/somefile.txt"),
         PublishItem("a41ef6", "www.example.com/test/content/nope.src.rpm"),
         [2, 4, 6, 8],
-    ]
+    )
 
     client = MockedClient()
 
@@ -74,15 +75,7 @@ def test_push_with_invalid_item(mocked_publish, mocked_upload, caplog):
             items=items, bucket_name="test_bucket", table_name="test_table"
         )
 
-    for msg in [
-        "Expected type 'PushItem'",
-        "dict",
-        "str",
-        "UploadItem",
-        "PublishItem",
-        "list",
-    ]:
-        assert msg in caplog.text
+    assert "No items to push" in caplog.text
 
     mocked_upload.assert_not_called()
     mocked_publish.assert_not_called()
