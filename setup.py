@@ -42,6 +42,7 @@ setup(
     install_requires=get_requirements(),
     python_requires=">=2.6",
     project_urls={
+        "Documentation": "https://release-engineering.github.io/chexus",
         "Changelog": "https://github.com/nathanegillett/chexus/blob/master/CHANGELOG.md",
     },
 )

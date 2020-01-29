@@ -9,6 +9,7 @@ A Python client for [boto3](https://aws.amazon.com/sdk-for-python/), used by
 [![Coverage Status](https://coveralls.io/repos/github/nathanegillett/chexus/badge.svg?branch=master)](https://coveralls.io/github/nathanegillett/chexus?branch=master)
 
 - [Source](https://github.com/nathanegillett/chexus)
+- [Documentation](https://nathanegillett.github.io/chexus)
 - [PyPI](https://pypi.org/project/chexus)
 
 Installation

@@ -158,7 +158,7 @@ class Client(object):
         """Publishes an item to the specified DynamoDB table.
 
         Args:
-            items (:class:`~chexus.aws.PublishItem, list)
+            items (:class:`~chexus.aws.PublishItem`, list)
                 One or more representations of data to publish to the
                 table.
 

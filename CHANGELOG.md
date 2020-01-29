@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Introduced docs
+
 ### Changed
 - Removed changelog compare link for initial release
+- Updated README.md with PyPI information
 
 ### Fixed
 - Corrected changelog compare link for v1.0.0...v1.0.1
