@@ -1,13 +1,12 @@
 import hashlib
 import json
 import os
-from datetime import datetime
 
 import dateutil
 
 
-class UploadItem(object):
-    """Represents an item to upload to S3"""
+class BucketItem(object):
+    """Represents an object in an AWS S3 bucket"""
 
     def __init__(self, file_path, file_name=None, checksum=None):
         self.path = file_path
@@ -26,46 +25,29 @@ class UploadItem(object):
             self.checksum = sha256.hexdigest()
 
 
-class PublishItem(object):
-    """Represents an item to publish to DynamoDB"""
+class TableItem(object):
+    """Represents an item in an AWS DynamoDB table"""
 
-    def __init__(self, web_uri, object_key, from_date=None, **kwargs):
-        self.web_uri = web_uri
-        self.object_key = object_key
-        self.from_date = self._valid_date(from_date)
+    def __init__(self, **kwargs):
         self.attrs = kwargs
-        self.attrs.update(
-            {
-                "web_uri": self.web_uri,
-                "object_key": self.object_key,
-                "from_date": self.from_date,
-            }
-        )
 
         for key, value in self.attrs.items():
-            # Serialize any dictionaries prior to publishing
+            # Coerce any dates to a standard format
+            if "date" in key and value:
+                value = str(dateutil.parser.parse(value).date())
+                self.attrs[key] = value
+
+            # Serialize any dictionaries
             if isinstance(value, dict):
                 value = json.dumps(value)
                 self.attrs[key] = value
 
-            # Create any missing class attributes
+            # Create class attribute from kwarg
             if not hasattr(self, key):
                 setattr(self, key, value)
 
-    @staticmethod
-    def _valid_date(date):
-        if date:
-            date_obj = dateutil.parser.parse(date)
-            return str(date_obj.date())
-        return str(datetime.now().date())
-
-
-class PushItem(UploadItem, PublishItem):
-    """Represents an item to upload to S3 and publish to DynamoDB"""
-
-    def __init__(self, file_path, web_uri, from_date=None, **kwargs):
-        self.file_name = kwargs.pop("file_name", None)
-        self.checksum = kwargs.pop("checksum", None)
-
-        UploadItem.__init__(self, file_path, self.file_name, self.checksum)
-        PublishItem.__init__(self, web_uri, self.checksum, from_date, **kwargs)
+        for key, value in self.attrs.items():
+            try:
+                assert isinstance(value, str)
+            except AssertionError:
+                print(value)

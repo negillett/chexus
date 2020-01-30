@@ -4,7 +4,7 @@ import argparse
 import json
 import logging
 
-from chexus import Client, PushItem
+from chexus import Client, BucketItem, TableItem
 
 LOG = logging.getLogger("push-file")
 
@@ -14,9 +14,8 @@ def main():
     logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     parser = argparse.ArgumentParser(
-        description="Upload a file to an Amazon S3 bucket and publish its data"
-                    " in a DynamoDB table, making the content available at the"
-                    " provided web URI from the desired release date.",
+        description="Upload a file to an Amazon S3 bucket and put data"
+                    " about it in a DynamoDB table.",
     )
     parser.add_argument(
         "--file-path",
@@ -47,7 +46,7 @@ def main():
     parser.add_argument(
         "--table",
         required=True,
-        help="DynamoDB table in which to publish file data."
+        help="DynamoDB table in which to put file data."
     )
     parser.add_argument(
         "--aws-access-id",
@@ -98,22 +97,20 @@ def main():
         access_id=p.aws_access_id,
         access_key=p.aws_access_key,
         session_token=p.aws_session_token,
-        default_region=p.default_region
+        default_region=p.default_region,
     )
 
-    push_item = PushItem(
-        file_path=p.file_path,
-        metadata=p.file_metadata,
-        from_date=p.release_date,
+    bucket_item = BucketItem(file_path=p.file_path)
+
+    table_item = TableItem(
         web_uri=p.dest_uri,
+        from_date=p.release_date,
+        object_key=bucket_item.checksum,
+        metadata=p.file_metadata,
     )
 
-    client.push(
-        items=push_item,
-        bucket_name=p.bucket,
-        table_name=p.table,
-        dryrun=p.dryrun
-    )
+    client.upload_files(items=bucket_item, bucket_name=p.bucket)
+    client.put_items(items=table_item, table_name=p.table)
 
 
 if __name__ == "__main__":

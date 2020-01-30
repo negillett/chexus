@@ -1,7 +1,7 @@
 chexus
 ======
 
-A library for interacting with AWS S3 and DynamoDB.
+A Python client for `boto3 <https://aws.amazon.com/sdk-for-python/>`.
 
 .. toctree::
    :maxdepth: 2
@@ -23,7 +23,7 @@ the desired methods to perform actions on AWS S3 or DynamoDB.
 
 .. code-block:: python
 
-    from chexus import Client, PushItem
+    from chexus import Client, BucketItem, TableItem
 
     # Make a client pointing at an AWS account using IAM credentials.
     client = Client(
@@ -32,22 +32,12 @@ the desired methods to perform actions on AWS S3 or DynamoDB.
         default_region="us-west-1"
     )
 
-    # Create a push item using information about the content.
-    item = PushItem(
-        file_path="mnt/co/os-3/new-file",
-        web_uri="www.example.com/content/os-3/new-file",
-        metadata={"build": 1234, "owner": "me"},
-        from_date="Nov. 19, 2022"
-    )
+    # Create an item to upload to an S3 bucket...
+    upload_item = BucketItem(file_path="mnt/my/os-3/new-file")
 
-    # Push the item, creating an object in an S3 bucket
-    # and a related record in a DynamoDB table.
-    client.push(
-        items=item,
-        bucket_name="co-bucket",
-        table_name="co-table",
-    )
+    # ...and/or an item to put into a DynamoDB table.
+    put_item = TableItem(Name=upload_item.name, Checksum=upload_item.checksum)
 
-    # Now, a service such as AWS Lambda can make the file available at the
-    # provided URI by pairing the table record's "object_key" attribute
-    # with the key of the object in the bucket.
+    # Perform the actions using the client.
+    client.upload_files(items=upload_item, bucket_name="my-bucket")
+    client.put_items(items=put_item, table_name="my-table")

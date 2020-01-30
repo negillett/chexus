@@ -1,7 +1,7 @@
 import mock
+from more_executors import Executors
 
 from chexus import Client
-from more_executors import Executors
 
 
 class MockedClient(Client):
