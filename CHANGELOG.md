@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - N/A
 
+## [2.0.0] - 2020-01-31
+
+### Added
+- Added pidiff job to travis 
+
+### Changed
+- Renamed model classes
+- Removed "push" method from Client
+- Revised TableItem (formerly PublishItem)
+- Improved "publish" method
+- Updated documentation and examples accordingly
+
 ## [1.0.2] - 2020-01-29
 
 ### Added
@@ -33,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release to PyPI
 
-[Unreleased]: https://github.com/nathanegillett/chexus/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/nathanegillett/chexus/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/nathanegillett/chexus/compare/v1.0.2...v2.0.0
 [1.0.2]: https://github.com/nathanegillett/chexus/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/nathanegillett/chexus/compare/v1.0.0...v1.0.1
