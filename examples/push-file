@@ -14,9 +14,8 @@ def main():
     logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     parser = argparse.ArgumentParser(
-        description="Upload a file to an Amazon S3 bucket and publish its data"
-                    " in a DynamoDB table, making the content available at the"
-                    " provided web URI from the desired release date.",
+        description="Upload a file to an Amazon S3 bucket and publish data"
+                    " about it in a DynamoDB table."
     )
     parser.add_argument(
         "--file-path",
