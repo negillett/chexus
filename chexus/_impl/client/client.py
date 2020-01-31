@@ -13,8 +13,8 @@ LOG = logging.getLogger("chexus")
 class Client(object):
     """A client for interacting with Amazon S3 and DynamoDB.
 
-    This class provides methods for uploading content to an S3 bucket
-    and publishing data about these uploads to a DynamoDB table.
+    This class provides methods for uploading files to an S3 bucket
+    and putting items into a DynamoDB table.
     """
 
     def __init__(
@@ -44,10 +44,8 @@ class Client(object):
 
     @staticmethod
     def _should_upload(checksum, bucket):
-        LOG.info("Checking upload item...")
-
         if list(bucket.objects.filter(Prefix=checksum)):
-            LOG.info("Content already present in s3 bucket")
+            LOG.info("Item already in s3 bucket")
             return False
         return True
 
@@ -60,7 +58,8 @@ class Client(object):
         bucket.upload_file(item.path, item.checksum)
 
     def upload(self, items, bucket_name, dryrun=False):
-        """Uploads an item to the specified S3 bucket.
+        """Efficiently uploads files into the specified S3 bucket
+        without risk of overwriting or duplicating data.
 
         Args:
             items (:class:`~chexus.BucketItem`, list)
@@ -82,6 +81,8 @@ class Client(object):
             items = list(items)
 
         bucket = self._session.resource("s3").Bucket(bucket_name)
+
+        LOG.info("Starting upload...")
 
         upload_fts = []
         for item in items:
@@ -137,8 +138,6 @@ class Client(object):
         )
 
     def _should_publish(self, item, table):
-        LOG.info("Checking publish...")
-
         response = self._query_table_item(item, table)
 
         if response["Items"]:
@@ -198,6 +197,8 @@ class Client(object):
         table = self._session.resource("dynamodb", region_name=region).Table(
             table_name
         )
+
+        LOG.info("Starting publish...")
 
         publish_fts = []
         for item in items:

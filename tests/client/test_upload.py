@@ -15,6 +15,7 @@ def test_upload(dryrun, caplog):
     items = (
         BucketItem("tests/test_data/somefile.txt"),
         BucketItem("tests/test_data/somefile2.txt"),
+        BucketItem("tests/test_data/somefile3.txt"),
     )
 
     client = MockedClient()
@@ -76,7 +77,7 @@ def test_upload_duplicate(caplog):
     # Should've checked bucket for duplicate file...
     mocked_bucket.objects.filter.assert_called_with(Prefix=item.checksum)
     # ...and found one
-    assert "Content already present in s3 bucket" in caplog.text
+    assert "Item already in s3 bucket" in caplog.text
     # Should not have tried to upload
     mocked_bucket.upload_file.assert_not_called()
 
