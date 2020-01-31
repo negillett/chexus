@@ -1,5 +1,4 @@
 more-executors
 python-dateutil
 PyYAML
-botocore
 boto3
