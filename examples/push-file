@@ -4,7 +4,7 @@ import argparse
 import json
 import logging
 
-from chexus import Client, PushItem
+from chexus import Client, BucketItem, TableItem
 
 LOG = logging.getLogger("push-file")
 
@@ -101,19 +101,16 @@ def main():
         default_region=p.default_region
     )
 
-    push_item = PushItem(
-        file_path=p.file_path,
-        metadata=p.file_metadata,
-        from_date=p.release_date,
+    upl_item = BucketItem(file_path=p.file_path)
+    pub_item = TableItem(
+        object_key=upl_item.checksum,
         web_uri=p.dest_uri,
+        from_date=p.release_date,
+        metadata=p.file_metadata,
     )
 
-    client.push(
-        items=push_item,
-        bucket_name=p.bucket,
-        table_name=p.table,
-        dryrun=p.dryrun
-    )
+    client.upload(items=upl_item, bucket_name=p.bucket, dryrun=p.dryrun)
+    client.publish(items=pub_item, table_name=p.table, dryrun=p.dryrun)
 
 
 if __name__ == "__main__":

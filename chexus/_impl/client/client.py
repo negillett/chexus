@@ -150,7 +150,7 @@ class Client(object):
     def _do_publish(self, item, table):
         for att in table.attribute_definitions:
             att_name = str(att["AttributeName"])
-            if not hasattr(item, att_name):
+            if not hasattr(item, att_name) or not getattr(item, att_name):
                 raise ValueError(
                     "Item to publish is missing required key, '%s'" % att_name
                 )
