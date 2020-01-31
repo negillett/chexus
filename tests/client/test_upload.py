@@ -4,20 +4,18 @@ import mock
 import pytest
 from boto3.exceptions import S3UploadFailedError
 
-from chexus import UploadItem, PublishItem, PushItem
+from chexus import BucketItem, TableItem
 from . import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])
 def test_upload(dryrun, caplog):
-    """Can upload UploadItems and PushItems"""
+    """Can upload BucketItems"""
 
     items = (
-        UploadItem("tests/test_data/somefile.txt"),
-        PushItem(
-            "tests/test_data/somefile2.txt",
-            "www.example.com/test/content/somefile2.txt",
-        ),
+        BucketItem("tests/test_data/somefile.txt"),
+        BucketItem("tests/test_data/somefile2.txt"),
+        BucketItem("tests/test_data/somefile3.txt"),
     )
 
     client = MockedClient()
@@ -58,7 +56,7 @@ def test_upload(dryrun, caplog):
 def test_upload_duplicate(caplog):
     """Doesn't attempt to replace file objects"""
 
-    item = UploadItem("tests/test_data/somefile.txt")
+    item = BucketItem("tests/test_data/somefile.txt")
 
     client = MockedClient()
     mocked_bucket = client._session.resource().Bucket()
@@ -79,7 +77,7 @@ def test_upload_duplicate(caplog):
     # Should've checked bucket for duplicate file...
     mocked_bucket.objects.filter.assert_called_with(Prefix=item.checksum)
     # ...and found one
-    assert "Content already present in s3 bucket" in caplog.text
+    assert "Item already in s3 bucket" in caplog.text
     # Should not have tried to upload
     mocked_bucket.upload_file.assert_not_called()
 
@@ -91,7 +89,7 @@ def test_upload_invalid_item(caplog):
     items = [
         {"Item": "Invalid"},
         "Not going to happen",
-        PublishItem("a41ef6", "www.example.com/test/content/nope.src.rpm"),
+        TableItem(key1="test", key2=1234),
         [2, 4, 6, 8],
     ]
 
@@ -101,10 +99,10 @@ def test_upload_invalid_item(caplog):
         client.upload(items=items, bucket_name="test_bucket")
 
     for msg in [
-        "Expected type 'UploadItem' or 'PushItem'",
+        "Expected type 'BucketItem'",
         "dict",
         "str",
-        "PublishItem",
+        "TableItem",
         "list",
     ]:
         assert msg in caplog.text
@@ -116,9 +114,9 @@ def test_upload_exceptions(caplog):
     """Exceptions raised from upload are expressed in error logging"""
 
     items = [
-        UploadItem("tests/test_data/somefile3.txt"),
-        UploadItem("tests/test_data/somefile2.txt"),
-        UploadItem("tests/test_data/somefile.txt"),
+        BucketItem("tests/test_data/somefile3.txt"),
+        BucketItem("tests/test_data/somefile2.txt"),
+        BucketItem("tests/test_data/somefile.txt"),
     ]
 
     client = MockedClient()

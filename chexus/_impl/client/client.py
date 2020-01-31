@@ -1,13 +1,11 @@
 import json
 import logging
-import os
 import time
 
 import boto3
-from boto3.dynamodb.conditions import Attr
 from more_executors import Executors
 
-from ..models import UploadItem, PublishItem, PushItem
+from ..models import BucketItem, TableItem
 
 LOG = logging.getLogger("chexus")
 
@@ -15,8 +13,8 @@ LOG = logging.getLogger("chexus")
 class Client(object):
     """A client for interacting with Amazon S3 and DynamoDB.
 
-    This class provides methods for uploading content to an S3 bucket
-    and publishing data about these uploads to a DynamoDB table.
+    This class provides methods for uploading files to an S3 bucket
+    and putting items into a DynamoDB table.
     """
 
     def __init__(
@@ -46,10 +44,8 @@ class Client(object):
 
     @staticmethod
     def _should_upload(checksum, bucket):
-        LOG.info("Checking upload item...")
-
         if list(bucket.objects.filter(Prefix=checksum)):
-            LOG.info("Content already present in s3 bucket")
+            LOG.info("Item already in s3 bucket")
             return False
         return True
 
@@ -62,10 +58,11 @@ class Client(object):
         bucket.upload_file(item.path, item.checksum)
 
     def upload(self, items, bucket_name, dryrun=False):
-        """Uploads an item to the specified S3 bucket.
+        """Efficiently uploads files into the specified S3 bucket
+        without risk of overwriting or duplicating data.
 
         Args:
-            items (:class:`~pubtools.aws.UploadItem`, list)
+            items (:class:`~chexus.BucketItem`, list)
                 One or more representations of an item to upload to the
                 bucket.
 
@@ -85,12 +82,13 @@ class Client(object):
 
         bucket = self._session.resource("s3").Bucket(bucket_name)
 
+        LOG.info("Starting upload...")
+
         upload_fts = []
         for item in items:
-            if not isinstance(item, (UploadItem, PushItem)):
+            if not isinstance(item, BucketItem):
                 LOG.error(
-                    "Expected type 'UploadItem' or 'PushItem', got '%s' instead",
-                    type(item),
+                    "Expected type 'BucketItem', got '%s' instead", type(item),
                 )
                 continue
 
@@ -124,53 +122,67 @@ class Client(object):
         LOG.info("Upload complete")
 
     @staticmethod
-    def _should_publish(object_key, ddb_table):
-        LOG.info("Checking publish...")
+    def _query_table_item(item, table):
+        expr_vals = {}
+        key_exprs = []
+        for att in table.attribute_definitions:
+            att_name = str(att["AttributeName"])
+            expr_vals.update(
+                {":%sval" % att_name: "%s" % getattr(item, att_name)}
+            )
+            key_exprs.append("%s = :%sval" % (att_name, att_name))
 
-        response = ddb_table.scan(
-            ProjectionExpression="object_key",
-            FilterExpression=Attr("object_key").eq(object_key),
+        return table.query(
+            KeyConditionExpression=" and ".join(key_exprs),
+            ExpressionAttributeValues=expr_vals,
         )
 
+    def _should_publish(self, item, table):
+        response = self._query_table_item(item, table)
+
         if response["Items"]:
-            LOG.info("Table already up to date")
+            LOG.info("Item already exists in table")
             return False
 
         return True
 
     def _do_publish(self, item, table):
-        if not self._should_publish(item.object_key, table):
+        for att in table.attribute_definitions:
+            att_name = str(att["AttributeName"])
+            if not hasattr(item, att_name) or not getattr(item, att_name):
+                raise ValueError(
+                    "Item to publish is missing required key, '%s'" % att_name
+                )
+
+        if not self._should_publish(item, table):
             return
 
-        LOG.info("Publishing %s...", os.path.basename(item.web_uri))
-
-        attrs = table.attribute_definitions
-        for attr in attrs:
-            if not hasattr(item, attr["AttributeName"]):
-                raise ValueError(
-                    "Content to publish is missing key, '%s'"
-                    % attr["AttributeName"],
-                )
+        LOG.info(
+            "Putting the following item into the '%s' table;\n\t%s",
+            table.name,
+            json.dumps(item.attrs, sort_keys=True, indent=4),
+        )
 
         table.put_item(Item=item.attrs)
 
     def publish(self, items, table_name, region=None, dryrun=False):
-        """Publishes an item to the specified DynamoDB table.
+        """Efficiently puts items into the specified DynamoDB table
+        without risk of overwriting or duplicating data.
 
         Args:
-            items (:class:`~chexus.aws.PublishItem`, list)
-                One or more representations of data to publish to the
+            items (:class:`~chexus.TableItem`, list)
+                One or more representations of an item to publish to the
                 table.
 
             table_name (str)
-                The name of the table to which the data will be
+                The name of the table in which the item will be
                 published.
 
             region (str)
                 The name of the AWS region the desired table belongs
                 to. If not provided here or to the calling client,
                 attempts to find it among environment variables and
-                ~/.aws/config file will be made.
+                configuration files will be made.
 
             dryrun (bool)
                 If true, only log what would be published.
@@ -186,20 +198,20 @@ class Client(object):
             table_name
         )
 
+        LOG.info("Starting publish...")
+
         publish_fts = []
         for item in items:
-            if not isinstance(item, (PublishItem, PushItem)):
+            if not isinstance(item, TableItem):
                 LOG.error(
-                    "Expected type 'PublishItem' or 'PushItem', got '%s' instead",
-                    type(item),
+                    "Expected type 'TableItem', got '%s' instead", type(item),
                 )
                 continue
 
             if dryrun:
                 LOG.info(
-                    "Would publish %s to the '%s' table with the following data;\n%s",
-                    os.path.basename(item.web_uri),
-                    table_name,
+                    "Would publish the following item to the '%s' table;\n\t%s",
+                    table.name,
                     json.dumps(item.attrs, sort_keys=True, indent=4),
                 )
                 continue
@@ -213,10 +225,10 @@ class Client(object):
         while not all([ft.done() for ft in publish_fts]):
             time.sleep(1)
 
-        # Report any upload failures as errors -- raising them could
-        # prevent other files from uploading
+        # Report any publish failures as errors -- raising them could
+        # prevent other items from being published
         publish_errs = [ft.exception() for ft in publish_fts]
-        # List of errors can contain None types, which aren't helpful
+        # Filter possible NoneTypes
         if [err for err in publish_errs if err]:
             LOG.error(
                 "One or more exceptions occurred during publish\n\t%s",
@@ -224,67 +236,3 @@ class Client(object):
             )
 
         LOG.info("Publish complete")
-
-    def push(self, items, bucket_name, table_name, region=None, dryrun=False):
-        """Uploads items to the specified S3 bucket and publishes data
-        about the item to the specified DynamoDB table.
-
-        Args:
-            items (:class:`~chexus.PushItem`, list)
-                One or more representations of an item to upload to the
-                bucket and publish to the table.
-
-            bucket_name (str)
-                The name of the bucket to which the item will be
-                uploaded.
-
-            table_name (str)
-                The name of the table to which the data will be
-                published.
-
-            region (str)
-                The name of the AWS region the desired table belongs
-                to. If not provided here or to the calling client,
-                attempts to find it among environment variables and
-                configuration files will be made.
-
-            dryrun (bool)
-                If true, only log what would be uploaded.
-        """
-
-        # Coerce items to list
-        if not isinstance(items, (list, tuple)):
-            items = [items]
-        if isinstance(items, tuple):
-            items = list(items)
-
-        # Filter non-PushItems
-        push_items = [i for i in items if isinstance(i, PushItem)]
-        diff_items = [
-            i
-            for i in items + push_items
-            if i not in items or i not in push_items
-        ]
-
-        # Report any removed items
-        if diff_items:
-            LOG.debug(
-                "Removed the following invalid items:\n\t%s",
-                "\n\t".join(str(i) for i in diff_items),
-            )
-
-        if not push_items:
-            LOG.info("No items to push")
-            return
-
-        LOG.info("Starting push...")
-        self.upload(items=push_items, bucket_name=bucket_name, dryrun=dryrun)
-
-        self.publish(
-            items=push_items,
-            table_name=table_name,
-            region=region,
-            dryrun=dryrun,
-        )
-
-        LOG.info("Push complete")
