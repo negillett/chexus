@@ -7,7 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 from more_executors import Executors
 
-from ..models import BucketItem, TableItem, PushItem
+from ..models import BucketItem, TableItem
 
 LOG = logging.getLogger("chexus")
 
@@ -87,10 +87,9 @@ class Client(object):
 
         upload_fts = []
         for item in items:
-            if not isinstance(item, (BucketItem, PushItem)):
+            if not isinstance(item, BucketItem):
                 LOG.error(
-                    "Expected type 'BucketItem' or 'PushItem', got '%s' instead",
-                    type(item),
+                    "Expected type 'BucketItem', got '%s' instead", type(item),
                 )
                 continue
 
@@ -188,10 +187,9 @@ class Client(object):
 
         publish_fts = []
         for item in items:
-            if not isinstance(item, (TableItem, PushItem)):
+            if not isinstance(item, TableItem):
                 LOG.error(
-                    "Expected type 'TableItem' or 'PushItem', got '%s' instead",
-                    type(item),
+                    "Expected type 'TableItem', got '%s' instead", type(item),
                 )
                 continue
 
@@ -224,67 +222,3 @@ class Client(object):
             )
 
         LOG.info("Publish complete")
-
-    def push(self, items, bucket_name, table_name, region=None, dryrun=False):
-        """Uploads items to the specified S3 bucket and publishes data
-        about the item to the specified DynamoDB table.
-
-        Args:
-            items (:class:`~chexus.PushItem`, list)
-                One or more representations of an item to upload to the
-                bucket and publish to the table.
-
-            bucket_name (str)
-                The name of the bucket to which the item will be
-                uploaded.
-
-            table_name (str)
-                The name of the table to which the data will be
-                published.
-
-            region (str)
-                The name of the AWS region the desired table belongs
-                to. If not provided here or to the calling client,
-                attempts to find it among environment variables and
-                configuration files will be made.
-
-            dryrun (bool)
-                If true, only log what would be uploaded.
-        """
-
-        # Coerce items to list
-        if not isinstance(items, (list, tuple)):
-            items = [items]
-        if isinstance(items, tuple):
-            items = list(items)
-
-        # Filter non-PushItems
-        push_items = [i for i in items if isinstance(i, PushItem)]
-        diff_items = [
-            i
-            for i in items + push_items
-            if i not in items or i not in push_items
-        ]
-
-        # Report any removed items
-        if diff_items:
-            LOG.debug(
-                "Removed the following invalid items:\n\t%s",
-                "\n\t".join(str(i) for i in diff_items),
-            )
-
-        if not push_items:
-            LOG.info("No items to push")
-            return
-
-        LOG.info("Starting push...")
-        self.upload(items=push_items, bucket_name=bucket_name, dryrun=dryrun)
-
-        self.publish(
-            items=push_items,
-            table_name=table_name,
-            region=region,
-            dryrun=dryrun,
-        )
-
-        LOG.info("Push complete")

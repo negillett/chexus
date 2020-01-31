@@ -4,20 +4,17 @@ import mock
 import pytest
 from boto3.exceptions import S3UploadFailedError
 
-from chexus import BucketItem, TableItem, PushItem
+from chexus import BucketItem, TableItem
 from . import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])
 def test_upload(dryrun, caplog):
-    """Can upload BucketItems and PushItems"""
+    """Can upload BucketItems"""
 
     items = (
         BucketItem("tests/test_data/somefile.txt"),
-        PushItem(
-            "tests/test_data/somefile2.txt",
-            "www.example.com/test/content/somefile2.txt",
-        ),
+        BucketItem("tests/test_data/somefile2.txt"),
     )
 
     client = MockedClient()
@@ -101,7 +98,7 @@ def test_upload_invalid_item(caplog):
         client.upload(items=items, bucket_name="test_bucket")
 
     for msg in [
-        "Expected type 'BucketItem' or 'PushItem'",
+        "Expected type 'BucketItem'",
         "dict",
         "str",
         "TableItem",

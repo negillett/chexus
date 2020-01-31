@@ -58,14 +58,3 @@ class TableItem(object):
             date_obj = dateutil.parser.parse(date)
             return str(date_obj.date())
         return str(datetime.now().date())
-
-
-class PushItem(BucketItem, TableItem):
-    """Represents an item to upload to S3 and publish to DynamoDB"""
-
-    def __init__(self, file_path, web_uri, from_date=None, **kwargs):
-        self.file_name = kwargs.pop("file_name", None)
-        self.checksum = kwargs.pop("checksum", None)
-
-        BucketItem.__init__(self, file_path, self.file_name, self.checksum)
-        TableItem.__init__(self, web_uri, self.checksum, from_date, **kwargs)

@@ -4,20 +4,17 @@ import mock
 import pytest
 from boto3.dynamodb.conditions import Attr
 
-from chexus import BucketItem, TableItem, PushItem
+from chexus import BucketItem, TableItem
 from . import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])
 def test_publish(dryrun, caplog):
-    """Can publish TableItems and PushItems""" ""
+    """Can publish TableItems"""
 
     items = [
         TableItem("www.example.com/test/content/somefile.txt", "a6e9f3"),
-        PushItem(
-            "tests/test_data/somefile2.txt",
-            "www.example.com/test/content/somefile2.txt",
-        ),
+        TableItem("www.example.com/test/content/somefile2.txt", "f6a2e1"),
     ]
 
     client = MockedClient()
@@ -111,7 +108,7 @@ def test_publish_invalid_item(caplog):
         client.publish(items=items, table_name="test_table")
 
     for msg in [
-        "Expected type 'TableItem' or 'PushItem'",
+        "Expected type 'TableItem'",
         "dict",
         "str",
         "BucketItem",
