@@ -1,10 +1,8 @@
 import json
 import logging
-import os
 import time
 
 import boto3
-from boto3.dynamodb.conditions import Attr
 from more_executors import Executors
 
 from ..models import BucketItem, TableItem
@@ -123,53 +121,69 @@ class Client(object):
         LOG.info("Upload complete")
 
     @staticmethod
-    def _should_publish(object_key, ddb_table):
-        LOG.info("Checking publish...")
+    def _query_table_item(item, table):
+        expr_vals = {}
+        key_exprs = []
+        for att in table.attribute_definitions:
+            att_name = str(att["AttributeName"])
+            expr_vals.update(
+                {":%sval" % att_name: "%s" % getattr(item, att_name)}
+            )
+            key_exprs.append("%s = :%sval" % (att_name, att_name))
 
-        response = ddb_table.scan(
-            ProjectionExpression="object_key",
-            FilterExpression=Attr("object_key").eq(object_key),
+        return table.query(
+            KeyConditionExpression=" and ".join(key_exprs),
+            ExpressionAttributeValues=expr_vals,
         )
 
+    def _should_publish(self, item, table):
+        LOG.info("Checking publish...")
+
+        response = self._query_table_item(item, table)
+
         if response["Items"]:
-            LOG.info("Table already up to date")
+            LOG.info("Item already exists in table")
             return False
 
         return True
 
     def _do_publish(self, item, table):
-        if not self._should_publish(item.object_key, table):
+        for att in table.attribute_definitions:
+            att_name = str(att["AttributeName"])
+            if not hasattr(item, att_name):
+                raise ValueError(
+                    "Item to publish is missing required key, '%s'" % att_name
+                )
+
+        if not self._should_publish(item, table):
             return
 
-        LOG.info("Publishing %s...", os.path.basename(item.web_uri))
-
-        attrs = table.attribute_definitions
-        for attr in attrs:
-            if not hasattr(item, attr["AttributeName"]):
-                raise ValueError(
-                    "Content to publish is missing key, '%s'"
-                    % attr["AttributeName"],
-                )
+        LOG.info(
+            "Putting the following item into the '%s' table;\n\t%s",
+            table.name,
+            json.dumps(item.attrs, sort_keys=True, indent=4),
+        )
 
         table.put_item(Item=item.attrs)
 
     def publish(self, items, table_name, region=None, dryrun=False):
-        """Publishes an item to the specified DynamoDB table.
+        """Efficiently puts items into the specified DynamoDB table
+        without risk of overwriting or duplicating data.
 
         Args:
             items (:class:`~chexus.TableItem`, list)
-                One or more representations of item to publish to the
+                One or more representations of an item to publish to the
                 table.
 
             table_name (str)
-                The name of the table to which the data will be
+                The name of the table in which the item will be
                 published.
 
             region (str)
                 The name of the AWS region the desired table belongs
                 to. If not provided here or to the calling client,
                 attempts to find it among environment variables and
-                ~/.aws/config file will be made.
+                configuration files will be made.
 
             dryrun (bool)
                 If true, only log what would be published.
@@ -195,9 +209,8 @@ class Client(object):
 
             if dryrun:
                 LOG.info(
-                    "Would publish %s to the '%s' table with the following data;\n%s",
-                    os.path.basename(item.web_uri),
-                    table_name,
+                    "Would publish the following item to the '%s' table;\n\t%s",
+                    table.name,
                     json.dumps(item.attrs, sort_keys=True, indent=4),
                 )
                 continue
@@ -211,10 +224,10 @@ class Client(object):
         while not all([ft.done() for ft in publish_fts]):
             time.sleep(1)
 
-        # Report any upload failures as errors -- raising them could
-        # prevent other files from uploading
+        # Report any publish failures as errors -- raising them could
+        # prevent other items from being published
         publish_errs = [ft.exception() for ft in publish_fts]
-        # List of errors can contain None types, which aren't helpful
+        # Filter possible NoneTypes
         if [err for err in publish_errs if err]:
             LOG.error(
                 "One or more exceptions occurred during publish\n\t%s",

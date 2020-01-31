@@ -88,7 +88,7 @@ def test_upload_invalid_item(caplog):
     items = [
         {"Item": "Invalid"},
         "Not going to happen",
-        TableItem("a41ef6", "www.example.com/test/content/nope.src.rpm"),
+        TableItem(key1="test", key2=1234),
         [2, 4, 6, 8],
     ]
 

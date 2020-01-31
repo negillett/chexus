@@ -2,7 +2,6 @@ import logging
 
 import mock
 import pytest
-from boto3.dynamodb.conditions import Attr
 
 from chexus import BucketItem, TableItem
 from . import MockedClient
@@ -13,28 +12,18 @@ def test_publish(dryrun, caplog):
     """Can publish TableItems"""
 
     items = [
-        TableItem("www.example.com/test/content/somefile.txt", "a6e9f3"),
-        TableItem("www.example.com/test/content/somefile2.txt", "f6a2e1"),
+        TableItem(key1="test", key2=1234),
+        TableItem(key1="testing", key2=5678),
     ]
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
-    # Scanning the table returns a dictionary of matching record items
-    mocked_table.scan.return_value = {"Items": []}
+    # Querying the table returns a dictionary with matching items
+    mocked_table.query.return_value = {"Items": []}
 
     with caplog.at_level(logging.DEBUG):
         client.publish(items, "test_table", dryrun=dryrun)
-
-    # Expected calls to Bucket methods objects.filters and upload_file
-    scan_calls = [
-        mock.call(
-            ProjectionExpression="object_key",
-            FilterExpression=Attr("object_key").eq(item.object_key),
-        )
-        for item in items
-    ]
-    publish_calls = [mock.call(Item=item.attrs) for item in items]
 
     if dryrun:
         # Should've only logged what would've been done
@@ -42,51 +31,47 @@ def test_publish(dryrun, caplog):
         mocked_table.put_item.assert_not_called()
     else:
         # Should've checked table for existing record...
-        mocked_table.scan.assert_has_calls(scan_calls, any_order=True)
+        assert mocked_table.query.call_count == 2
 
         # ...and proceeded with publish
         assert "Table already up to date" not in caplog.text
 
-        # Should've published
-        mocked_table.put_item.assert_has_calls(publish_calls, any_order=True)
+        mocked_table.put_item.assert_has_calls(
+            [
+                mock.call(Item={"key1": "test", "key2": 1234}),
+                mock.call(Item={"key1": "testing", "key2": 5678}),
+            ],
+            any_order=True,
+        )
         assert "Publish complete" in caplog.text
 
 
 def test_publish_duplicate(caplog):
-    """Doesn't attempt to duplicate record items"""
+    """Doesn't attempt to duplicate table items"""
 
-    item = TableItem("www.example.com/test/content/somefile.txt", "a6e9f3")
+    item = TableItem(key1="test", key2=1234)
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
-    # Scanning the table returns a dictionary of matching record items
-    mocked_table.scan.return_value = {
-        "Items": [
-            {
-                "web_uri": item.web_uri,
-                "from_date": item.from_date,
-                "object_key": item.object_key,
-            }
-        ]
+    # Querying the table returns a dictionary of matching record items
+    mocked_table.query.return_value = {
+        "Items": [{"key1": "test", "key2": 1234}]
     }
 
     # Expected table attributes
     mocked_table.attribute_definitions = [
-        {"AttributeName": "object_key", "AttributeType": "S"},
-        {"AttributeName": "from_date", "AttributeType": "S"},
+        {"AttributeName": "key1", "AttributeType": "S"},
+        {"AttributeName": "key2", "AttributeType": "S"},
     ]
 
     with caplog.at_level(logging.DEBUG):
         client.publish(item, "test_table")
 
     # Should've checked table for existing record...
-    mocked_table.scan.assert_called_with(
-        ProjectionExpression="object_key",
-        FilterExpression=Attr("object_key").eq(item.object_key),
-    )
+    mocked_table.query.assert_called()
     # ...and found one
-    assert "Table already up to date" in caplog.text
+    assert "Item already exists in table" in caplog.text
     # Should not have tried to publish
     mocked_table.put_item.assert_not_called()
 
@@ -122,13 +107,13 @@ def test_publish_invalid_item(caplog):
 def test_publish_without_table_key(caplog):
     """Catches items missing keys required by the table"""
 
-    item = TableItem("www.example.com/test/content/somefile.txt", "a6e9f3")
+    item = TableItem(key1="test", key2=1234)
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
-    # Scanning the table returns a dictionary of matching record items
-    mocked_table.scan.return_value = {"Items": []}
+    # Querying the table returns a dictionary of matching record items
+    mocked_table.query.return_value = {"Items": []}
 
     # Table contains unexpected keys
     mocked_table.attribute_definitions = [
@@ -138,4 +123,4 @@ def test_publish_without_table_key(caplog):
     with caplog.at_level(logging.DEBUG):
         client.publish(item, "test_table")
 
-    assert "Content to publish is missing key, 'Nope'" in caplog.text
+    assert "Item to publish is missing required key, 'Nope'" in caplog.text
