@@ -33,14 +33,12 @@
   <h1>Source code for chexus._impl.client.client</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
 <span class="kn">import</span> <span class="nn">boto3</span>
-<span class="kn">from</span> <span class="nn">boto3.dynamodb.conditions</span> <span class="kn">import</span> <span class="n">Attr</span>
 <span class="kn">from</span> <span class="nn">more_executors</span> <span class="kn">import</span> <span class="n">Executors</span>
 
-<span class="kn">from</span> <span class="nn">..models</span> <span class="kn">import</span> <span class="n">UploadItem</span><span class="p">,</span> <span class="n">PublishItem</span><span class="p">,</span> <span class="n">PushItem</span>
+<span class="kn">from</span> <span class="nn">..models</span> <span class="kn">import</span> <span class="n">BucketItem</span><span class="p">,</span> <span class="n">TableItem</span>
 
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;chexus&quot;</span><span class="p">)</span>
 
@@ -48,8 +46,8 @@
 <div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A client for interacting with Amazon S3 and DynamoDB.</span>
 
-<span class="sd">    This class provides methods for uploading content to an S3 bucket</span>
-<span class="sd">    and publishing data about these uploads to a DynamoDB table.</span>
+<span class="sd">    This class provides methods for uploading files to an S3 bucket</span>
+<span class="sd">    and putting items into a DynamoDB table.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -79,10 +77,8 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_should_upload</span><span class="p">(</span><span class="n">checksum</span><span class="p">,</span> <span class="n">bucket</span><span class="p">):</span>
-        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Checking upload item...&quot;</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="n">bucket</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Prefix</span><span class="o">=</span><span class="n">checksum</span><span class="p">)):</span>
-            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Content already present in s3 bucket&quot;</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Item already in s3 bucket&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="kc">True</span>
 
@@ -95,10 +91,11 @@
         <span class="n">bucket</span><span class="o">.</span><span class="n">upload_file</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">checksum</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Client.upload"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client.upload">[docs]</a>    <span class="k">def</span> <span class="nf">upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">bucket_name</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Uploads an item to the specified S3 bucket.</span>
+        <span class="sd">&quot;&quot;&quot;Efficiently uploads files into the specified S3 bucket</span>
+<span class="sd">        without risk of overwriting or duplicating data.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            items (:class:`~pubtools.aws.UploadItem`, list)</span>
+<span class="sd">            items (:class:`~chexus.BucketItem`, list)</span>
 <span class="sd">                One or more representations of an item to upload to the</span>
 <span class="sd">                bucket.</span>
 
@@ -118,12 +115,13 @@
 
         <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">Bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
 
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting upload...&quot;</span><span class="p">)</span>
+
         <span class="n">upload_fts</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">(</span><span class="n">UploadItem</span><span class="p">,</span> <span class="n">PushItem</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">BucketItem</span><span class="p">):</span>
                 <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                    <span class="s2">&quot;Expected type &#39;UploadItem&#39; or &#39;PushItem&#39;, got &#39;</span><span class="si">%s</span><span class="s2">&#39; instead&quot;</span><span class="p">,</span>
-                    <span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
+                    <span class="s2">&quot;Expected type &#39;BucketItem&#39;, got &#39;</span><span class="si">%s</span><span class="s2">&#39; instead&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="k">continue</span>
 
@@ -157,53 +155,67 @@
         <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Upload complete&quot;</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_should_publish</span><span class="p">(</span><span class="n">object_key</span><span class="p">,</span> <span class="n">ddb_table</span><span class="p">):</span>
-        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Checking publish...&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_query_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="n">expr_vals</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">key_exprs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span><span class="p">:</span>
+            <span class="n">att_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">att</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">])</span>
+            <span class="n">expr_vals</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;:</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="n">att_name</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att_name</span><span class="p">)}</span>
+            <span class="p">)</span>
+            <span class="n">key_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = :</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">att_name</span><span class="p">,</span> <span class="n">att_name</span><span class="p">))</span>
 
-        <span class="n">response</span> <span class="o">=</span> <span class="n">ddb_table</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span>
-            <span class="n">ProjectionExpression</span><span class="o">=</span><span class="s2">&quot;object_key&quot;</span><span class="p">,</span>
-            <span class="n">FilterExpression</span><span class="o">=</span><span class="n">Attr</span><span class="p">(</span><span class="s2">&quot;object_key&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">object_key</span><span class="p">),</span>
+        <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">KeyConditionExpression</span><span class="o">=</span><span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key_exprs</span><span class="p">),</span>
+            <span class="n">ExpressionAttributeValues</span><span class="o">=</span><span class="n">expr_vals</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_should_publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;Items&quot;</span><span class="p">]:</span>
-            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Table already up to date&quot;</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Item already exists in table&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
 
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">_do_publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_publish</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">object_key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span><span class="p">:</span>
+            <span class="n">att_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">att</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att_name</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att_name</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Item to publish is missing required key, &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">att_name</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_publish</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
             <span class="k">return</span>
 
-        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Publishing </span><span class="si">%s</span><span class="s2">...&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">web_uri</span><span class="p">))</span>
-
-        <span class="n">attrs</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span>
-        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">attr</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">]):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Content to publish is missing key, &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
-                    <span class="o">%</span> <span class="n">attr</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">],</span>
-                <span class="p">)</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Putting the following item into the &#39;</span><span class="si">%s</span><span class="s2">&#39; table;</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+        <span class="p">)</span>
 
         <span class="n">table</span><span class="o">.</span><span class="n">put_item</span><span class="p">(</span><span class="n">Item</span><span class="o">=</span><span class="n">item</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Client.publish"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client.publish">[docs]</a>    <span class="k">def</span> <span class="nf">publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Publishes an item to the specified DynamoDB table.</span>
+        <span class="sd">&quot;&quot;&quot;Efficiently puts items into the specified DynamoDB table</span>
+<span class="sd">        without risk of overwriting or duplicating data.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            items (:class:`~chexus.aws.PublishItem`, list)</span>
-<span class="sd">                One or more representations of data to publish to the</span>
+<span class="sd">            items (:class:`~chexus.TableItem`, list)</span>
+<span class="sd">                One or more representations of an item to publish to the</span>
 <span class="sd">                table.</span>
 
 <span class="sd">            table_name (str)</span>
-<span class="sd">                The name of the table to which the data will be</span>
+<span class="sd">                The name of the table in which the item will be</span>
 <span class="sd">                published.</span>
 
 <span class="sd">            region (str)</span>
 <span class="sd">                The name of the AWS region the desired table belongs</span>
 <span class="sd">                to. If not provided here or to the calling client,</span>
 <span class="sd">                attempts to find it among environment variables and</span>
-<span class="sd">                ~/.aws/config file will be made.</span>
+<span class="sd">                configuration files will be made.</span>
 
 <span class="sd">            dryrun (bool)</span>
 <span class="sd">                If true, only log what would be published.</span>
@@ -219,20 +231,20 @@
             <span class="n">table_name</span>
         <span class="p">)</span>
 
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting publish...&quot;</span><span class="p">)</span>
+
         <span class="n">publish_fts</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">(</span><span class="n">PublishItem</span><span class="p">,</span> <span class="n">PushItem</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">TableItem</span><span class="p">):</span>
                 <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                    <span class="s2">&quot;Expected type &#39;PublishItem&#39; or &#39;PushItem&#39;, got &#39;</span><span class="si">%s</span><span class="s2">&#39; instead&quot;</span><span class="p">,</span>
-                    <span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
+                    <span class="s2">&quot;Expected type &#39;TableItem&#39;, got &#39;</span><span class="si">%s</span><span class="s2">&#39; instead&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="k">continue</span>
 
             <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
                 <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">&quot;Would publish </span><span class="si">%s</span><span class="s2"> to the &#39;</span><span class="si">%s</span><span class="s2">&#39; table with the following data;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">web_uri</span><span class="p">),</span>
-                    <span class="n">table_name</span><span class="p">,</span>
+                    <span class="s2">&quot;Would publish the following item to the &#39;</span><span class="si">%s</span><span class="s2">&#39; table;</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                     <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="k">continue</span>
@@ -246,81 +258,17 @@
         <span class="k">while</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">ft</span><span class="o">.</span><span class="n">done</span><span class="p">()</span> <span class="k">for</span> <span class="n">ft</span> <span class="ow">in</span> <span class="n">publish_fts</span><span class="p">]):</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># Report any upload failures as errors -- raising them could</span>
-        <span class="c1"># prevent other files from uploading</span>
+        <span class="c1"># Report any publish failures as errors -- raising them could</span>
+        <span class="c1"># prevent other items from being published</span>
         <span class="n">publish_errs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ft</span><span class="o">.</span><span class="n">exception</span><span class="p">()</span> <span class="k">for</span> <span class="n">ft</span> <span class="ow">in</span> <span class="n">publish_fts</span><span class="p">]</span>
-        <span class="c1"># List of errors can contain None types, which aren&#39;t helpful</span>
+        <span class="c1"># Filter possible NoneTypes</span>
         <span class="k">if</span> <span class="p">[</span><span class="n">err</span> <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">publish_errs</span> <span class="k">if</span> <span class="n">err</span><span class="p">]:</span>
             <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
                 <span class="s2">&quot;One or more exceptions occurred during publish</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span> <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">publish_errs</span><span class="p">),</span>
             <span class="p">)</span>
 
-        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Publish complete&quot;</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Client.push"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">bucket_name</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Uploads items to the specified S3 bucket and publishes data</span>
-<span class="sd">        about the item to the specified DynamoDB table.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            items (:class:`~chexus.PushItem`, list)</span>
-<span class="sd">                One or more representations of an item to upload to the</span>
-<span class="sd">                bucket and publish to the table.</span>
-
-<span class="sd">            bucket_name (str)</span>
-<span class="sd">                The name of the bucket to which the item will be</span>
-<span class="sd">                uploaded.</span>
-
-<span class="sd">            table_name (str)</span>
-<span class="sd">                The name of the table to which the data will be</span>
-<span class="sd">                published.</span>
-
-<span class="sd">            region (str)</span>
-<span class="sd">                The name of the AWS region the desired table belongs</span>
-<span class="sd">                to. If not provided here or to the calling client,</span>
-<span class="sd">                attempts to find it among environment variables and</span>
-<span class="sd">                configuration files will be made.</span>
-
-<span class="sd">            dryrun (bool)</span>
-<span class="sd">                If true, only log what would be uploaded.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Coerce items to list</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-            <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
-
-        <span class="c1"># Filter non-PushItems</span>
-        <span class="n">push_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">PushItem</span><span class="p">)]</span>
-        <span class="n">diff_items</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">i</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span> <span class="o">+</span> <span class="n">push_items</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">items</span> <span class="ow">or</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">push_items</span>
-        <span class="p">]</span>
-
-        <span class="c1"># Report any removed items</span>
-        <span class="k">if</span> <span class="n">diff_items</span><span class="p">:</span>
-            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                <span class="s2">&quot;Removed the following invalid items:</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">diff_items</span><span class="p">),</span>
-            <span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">push_items</span><span class="p">:</span>
-            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No items to push&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-
-        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting push...&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="n">push_items</span><span class="p">,</span> <span class="n">bucket_name</span><span class="o">=</span><span class="n">bucket_name</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="n">dryrun</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span>
-            <span class="n">items</span><span class="o">=</span><span class="n">push_items</span><span class="p">,</span>
-            <span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
-            <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
-            <span class="n">dryrun</span><span class="o">=</span><span class="n">dryrun</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Push complete&quot;</span><span class="p">)</span></div></div>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Publish complete&quot;</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
