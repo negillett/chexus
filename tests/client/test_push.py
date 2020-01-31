@@ -3,7 +3,7 @@ import logging
 import mock
 from boto3.dynamodb.conditions import Attr
 
-from chexus import UploadItem, PublishItem, PushItem
+from chexus import BucketItem, TableItem, PushItem
 from . import MockedClient
 
 
@@ -63,8 +63,8 @@ def test_push_with_invalid_item(mocked_publish, mocked_upload, caplog):
         {"Item": "Invalid"},
         "Not going to happen",
         ("oh", "no"),
-        UploadItem("tests/test_data/somefile.txt"),
-        PublishItem("a41ef6", "www.example.com/test/content/nope.src.rpm"),
+        BucketItem("tests/test_data/somefile.txt"),
+        TableItem("a41ef6", "www.example.com/test/content/nope.src.rpm"),
         [2, 4, 6, 8],
     )
 

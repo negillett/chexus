@@ -4,16 +4,16 @@ import mock
 import pytest
 from boto3.dynamodb.conditions import Attr
 
-from chexus import UploadItem, PublishItem, PushItem
+from chexus import BucketItem, TableItem, PushItem
 from . import MockedClient
 
 
 @pytest.mark.parametrize("dryrun", [True, False])
 def test_publish(dryrun, caplog):
-    """Can publish PublishItems and PushItems""" ""
+    """Can publish TableItems and PushItems""" ""
 
     items = [
-        PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3"),
+        TableItem("www.example.com/test/content/somefile.txt", "a6e9f3"),
         PushItem(
             "tests/test_data/somefile2.txt",
             "www.example.com/test/content/somefile2.txt",
@@ -58,7 +58,7 @@ def test_publish(dryrun, caplog):
 def test_publish_duplicate(caplog):
     """Doesn't attempt to duplicate record items"""
 
-    item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
+    item = TableItem("www.example.com/test/content/somefile.txt", "a6e9f3")
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()
@@ -101,7 +101,7 @@ def test_publish_invalid_item(caplog):
     items = (
         {"Item": "Invalid"},
         "Not going to happen",
-        UploadItem("tests/test_data/somefile.txt"),
+        BucketItem("tests/test_data/somefile.txt"),
         [2, 4, 6, 8],
     )
 
@@ -111,10 +111,10 @@ def test_publish_invalid_item(caplog):
         client.publish(items=items, table_name="test_table")
 
     for msg in [
-        "Expected type 'PublishItem' or 'PushItem'",
+        "Expected type 'TableItem' or 'PushItem'",
         "dict",
         "str",
-        "UploadItem",
+        "BucketItem",
         "list",
     ]:
         assert msg in caplog.text
@@ -125,7 +125,7 @@ def test_publish_invalid_item(caplog):
 def test_publish_without_table_key(caplog):
     """Catches items missing keys required by the table"""
 
-    item = PublishItem("www.example.com/test/content/somefile.txt", "a6e9f3")
+    item = TableItem("www.example.com/test/content/somefile.txt", "a6e9f3")
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()

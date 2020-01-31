@@ -6,7 +6,7 @@ from datetime import datetime
 import dateutil
 
 
-class UploadItem(object):
+class BucketItem(object):
     """Represents an item to upload to S3"""
 
     def __init__(self, file_path, file_name=None, checksum=None):
@@ -26,7 +26,7 @@ class UploadItem(object):
             self.checksum = sha256.hexdigest()
 
 
-class PublishItem(object):
+class TableItem(object):
     """Represents an item to publish to DynamoDB"""
 
     def __init__(self, web_uri, object_key, from_date=None, **kwargs):
@@ -60,12 +60,12 @@ class PublishItem(object):
         return str(datetime.now().date())
 
 
-class PushItem(UploadItem, PublishItem):
+class PushItem(BucketItem, TableItem):
     """Represents an item to upload to S3 and publish to DynamoDB"""
 
     def __init__(self, file_path, web_uri, from_date=None, **kwargs):
         self.file_name = kwargs.pop("file_name", None)
         self.checksum = kwargs.pop("checksum", None)
 
-        UploadItem.__init__(self, file_path, self.file_name, self.checksum)
-        PublishItem.__init__(self, web_uri, self.checksum, from_date, **kwargs)
+        BucketItem.__init__(self, file_path, self.file_name, self.checksum)
+        TableItem.__init__(self, web_uri, self.checksum, from_date, **kwargs)

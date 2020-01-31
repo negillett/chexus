@@ -1,10 +1,10 @@
 import datetime
 
-from chexus import UploadItem, PublishItem, PushItem
+from chexus import BucketItem, TableItem, PushItem
 
 
-def test_upload_item():
-    item = UploadItem(file_path="tests/test_data/somefile.txt")
+def test_bucket_item():
+    item = BucketItem(file_path="tests/test_data/somefile.txt")
     assert item.name == "somefile.txt"
     assert item.path == "tests/test_data/somefile.txt"
     assert (
@@ -13,8 +13,8 @@ def test_upload_item():
     )
 
 
-def test_publish_item():
-    item = PublishItem(
+def test_table_item():
+    item = TableItem(
         web_uri="www.example.com/nothing",
         object_key="a8d83f1e",
         first=1,

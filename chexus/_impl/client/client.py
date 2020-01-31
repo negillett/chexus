@@ -7,7 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 from more_executors import Executors
 
-from ..models import UploadItem, PublishItem, PushItem
+from ..models import BucketItem, TableItem, PushItem
 
 LOG = logging.getLogger("chexus")
 
@@ -65,7 +65,7 @@ class Client(object):
         """Uploads an item to the specified S3 bucket.
 
         Args:
-            items (:class:`~pubtools.aws.UploadItem`, list)
+            items (:class:`~chexus.BucketItem`, list)
                 One or more representations of an item to upload to the
                 bucket.
 
@@ -87,9 +87,9 @@ class Client(object):
 
         upload_fts = []
         for item in items:
-            if not isinstance(item, (UploadItem, PushItem)):
+            if not isinstance(item, (BucketItem, PushItem)):
                 LOG.error(
-                    "Expected type 'UploadItem' or 'PushItem', got '%s' instead",
+                    "Expected type 'BucketItem' or 'PushItem', got '%s' instead",
                     type(item),
                 )
                 continue
@@ -158,8 +158,8 @@ class Client(object):
         """Publishes an item to the specified DynamoDB table.
 
         Args:
-            items (:class:`~chexus.aws.PublishItem`, list)
-                One or more representations of data to publish to the
+            items (:class:`~chexus.TableItem`, list)
+                One or more representations of item to publish to the
                 table.
 
             table_name (str)
@@ -188,9 +188,9 @@ class Client(object):
 
         publish_fts = []
         for item in items:
-            if not isinstance(item, (PublishItem, PushItem)):
+            if not isinstance(item, (TableItem, PushItem)):
                 LOG.error(
-                    "Expected type 'PublishItem' or 'PushItem', got '%s' instead",
+                    "Expected type 'TableItem' or 'PushItem', got '%s' instead",
                     type(item),
                 )
                 continue
