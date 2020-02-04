@@ -6,7 +6,7 @@ import logging
 
 from chexus import Client, TableItem
 
-LOG = logging.getLogger("search-db-table")
+LOG = logging.getLogger("search-table")
 
 
 def main():
@@ -75,7 +75,7 @@ def main():
         default_region=p.default_region
     )
 
-    response = client.query(item=TableItem(**p.criteria), table_name=p.table)
+    response = client.search(item=TableItem(**p.criteria), table_name=p.table)
     print(json.dumps(response["Items"], indent=4, sort_keys=True))
 
 

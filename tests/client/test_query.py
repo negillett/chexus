@@ -22,7 +22,7 @@ def test_query():
         {"AttributeName": "key1", "AttributeType": "S"},
     ]
 
-    client.query(item, "test_table")
+    client.search(item, "test_table")
 
     mocked_table.query.assert_called_with(
         ExpressionAttributeValues={":key1val": "1234", ":attr1val": "hello"},
@@ -38,7 +38,7 @@ def test_query_invalid_item(caplog):
 
     with caplog.at_level(logging.DEBUG):
         with pytest.raises(ValueError) as err:
-            client.query("not a table item", "test_table")
+            client.search("not a table item", "test_table")
 
     for msg in ["Expected type 'TableItem'", "str"]:
         assert msg in str(err.value)
@@ -64,7 +64,7 @@ def test_query_response_too_large(caplog):
     ]
 
     with caplog.at_level(logging.DEBUG):
-        client.query(item, "test_table")
+        client.search(item, "test_table")
 
     mocked_table.query.assert_called_with(
         ExpressionAttributeValues={":key1val": "1234", ":attr1val": "hello"},

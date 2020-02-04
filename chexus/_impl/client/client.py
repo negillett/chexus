@@ -122,7 +122,7 @@ class Client(object):
         LOG.info("Upload complete")
 
     @staticmethod
-    def _query_table_item(item, table):
+    def _search_table_item(item, table):
         expr_vals = {}
         key_exprs = []
         fil_exprs = []
@@ -155,15 +155,16 @@ class Client(object):
 
         return response
 
-    def query(self, item, table_name, region=None):
-        """Queries the specified table using a TableItem as criteria.
+    def search(self, item, table_name, region=None):
+        """Queries the specified table for an item matching the given
+        TableItem.
 
         Args:
             item (:class:`~chexus.TableItem`)
                 A representation of a DynamoDB table item.
 
             table_name (str)
-                The name of the table to query.
+                The name of the table to search.
 
             region (str)
                 The name of the AWS region the desired table belongs
@@ -181,7 +182,7 @@ class Client(object):
             table_name
         )
 
-        return self._query_table_item(item, table)
+        return self._search_table_item(item, table)
 
     def _should_publish(self, item, table):
         for att in [
@@ -191,7 +192,7 @@ class Client(object):
                 LOG.error("Item to publish is missing required key, '%s'", att)
                 return False
 
-        response = self._query_table_item(item, table)
+        response = self._search_table_item(item, table)
 
         if response["Items"]:
             LOG.info("Item already exists in table")
