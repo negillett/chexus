@@ -14,8 +14,7 @@ def test_query():
 
     # Querying the table returns a dictionary with matching items
     mocked_table.query.return_value = {
-        "Items": [{"key1": 1234, "att1": "foo"}],
-        "LastEvaluatedKey": {},
+        "Items": [{"key1": 1234, "att1": "foo"}]
     }
 
     # Expected table attributes
@@ -37,12 +36,6 @@ def test_query_invalid_item(caplog):
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
-    # Querying the table returns a dictionary with matching items
-    mocked_table.query.return_value = {
-        "Items": ["Lots of items..."],
-        "LastEvaluatedKey": {"key1": 1234},
-    }
-
     with caplog.at_level(logging.DEBUG):
         with pytest.raises(ValueError) as err:
             client.query("not a table item", "test_table")
@@ -62,7 +55,7 @@ def test_query_response_too_large(caplog):
     # Querying the table returns a dictionary with matching items
     mocked_table.query.return_value = {
         "Items": ["Lots of items..."],
-        "LastEvaluatedKey": {"key1": "test", "key2": 1234},
+        "LastEvaluatedKey": {"key1": "test"},
     }
 
     # Expected table attributes

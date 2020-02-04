@@ -20,7 +20,7 @@ def test_publish(dryrun, caplog):
     mocked_table = client._session.resource().Table()
 
     # Querying the table returns a dictionary with matching items
-    mocked_table.query.return_value = {"Items": [], "LastEvaluatedKey": {}}
+    mocked_table.query.return_value = {"Items": []}
 
     with caplog.at_level(logging.DEBUG):
         client.publish(items, "test_table", dryrun=dryrun)
@@ -56,8 +56,7 @@ def test_publish_duplicate(caplog):
 
     # Querying the table returns a dictionary of matching record items
     mocked_table.query.return_value = {
-        "Items": [{"key1": "test", "key2": 1234}],
-        "LastEvaluatedKey": {},
+        "Items": [{"key1": "test", "key2": 1234}]
     }
 
     # Expected table attributes
@@ -114,7 +113,7 @@ def test_publish_without_table_key(caplog):
     mocked_table = client._session.resource().Table()
 
     # Querying the table returns a dictionary of matching record items
-    mocked_table.query.return_value = {"Items": [], "LastEvaluatedKey": {}}
+    mocked_table.query.return_value = {"Items": []}
 
     # Table contains unexpected keys
     mocked_table.attribute_definitions = [
@@ -136,7 +135,7 @@ def test_publish_error(caplog):
     mocked_table = client._session.resource().Table()
 
     # Querying the table returns a dictionary of matching record items
-    mocked_table.query.return_value = {"Items": [], "LastEvaluatedKey": {}}
+    mocked_table.query.return_value = {"Items": []}
 
     # Expected table attributes
     mocked_table.attribute_definitions = [

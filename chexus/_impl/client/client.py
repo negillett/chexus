@@ -136,14 +136,18 @@ class Client(object):
             else:
                 fil_exprs.append("%s = :%sval" % (key, key))
 
-        response = table.query(
-            ExpressionAttributeValues=expr_vals,
-            FilterExpression=" and ".join(fil_exprs),
-            KeyConditionExpression=" and ".join(key_exprs),
-            Select="ALL_ATTRIBUTES",
-        )
+        criteria = {
+            "ExpressionAttributeValues": expr_vals,
+            "KeyConditionExpression": " and ".join(key_exprs),
+            "Select": "ALL_ATTRIBUTES",
+        }
 
-        if response["LastEvaluatedKey"]:
+        if fil_exprs:
+            criteria.update({"FilterExpression": " and ".join(fil_exprs)})
+
+        response = table.query(**criteria)
+
+        if "LastEvaluatedKey" in response:
             LOG.warning(
                 "Query limit reached, results truncated\n"
                 "Consider increasing uniqueness of key(s)"
