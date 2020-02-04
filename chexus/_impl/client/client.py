@@ -122,23 +122,77 @@ class Client(object):
         LOG.info("Upload complete")
 
     @staticmethod
-    def _query_table_item(item, table):
+    def _search_table_item(item, table):
         expr_vals = {}
         key_exprs = []
-        for att in table.attribute_definitions:
-            att_name = str(att["AttributeName"])
-            expr_vals.update(
-                {":%sval" % att_name: "%s" % getattr(item, att_name)}
-            )
-            key_exprs.append("%s = :%sval" % (att_name, att_name))
+        fil_exprs = []
 
-        return table.query(
-            KeyConditionExpression=" and ".join(key_exprs),
-            ExpressionAttributeValues=expr_vals,
+        for key, value in item.attrs.items():
+            expr_vals.update({":%sval" % key: "%s" % value})
+            if key in [
+                str(a["AttributeName"]) for a in table.attribute_definitions
+            ]:
+                key_exprs.append("%s = :%sval" % (key, key))
+            else:
+                fil_exprs.append("%s = :%sval" % (key, key))
+
+        criteria = {
+            "ExpressionAttributeValues": expr_vals,
+            "KeyConditionExpression": " and ".join(key_exprs),
+            "Select": "ALL_ATTRIBUTES",
+        }
+
+        if fil_exprs:
+            criteria.update({"FilterExpression": " and ".join(fil_exprs)})
+
+        response = table.query(**criteria)
+
+        if "LastEvaluatedKey" in response:
+            LOG.warning(
+                "Query limit reached, results truncated\n"
+                "Consider increasing uniqueness of key(s)"
+            )
+
+        return response
+
+    def search(self, item, table_name, region=None):
+        """Queries the specified table for an item matching the given
+        TableItem.
+
+        Args:
+            item (:class:`~chexus.TableItem`)
+                A representation of a DynamoDB table item.
+
+            table_name (str)
+                The name of the table to search.
+
+            region (str)
+                The name of the AWS region the desired table belongs
+                to. If not provided here or to the calling client,
+                attempts to find it among environment variables and
+                configuration files will be made.
+        """
+
+        if not isinstance(item, TableItem):
+            raise ValueError(
+                "Expected type 'TableItem', got '%s' instead" % type(item)
+            )
+
+        table = self._session.resource("dynamodb", region_name=region).Table(
+            table_name
         )
 
+        return self._search_table_item(item, table)
+
     def _should_publish(self, item, table):
-        response = self._query_table_item(item, table)
+        for att in [
+            str(a["AttributeName"]) for a in table.attribute_definitions
+        ]:
+            if not hasattr(item, att) or not getattr(item, att):
+                LOG.error("Item to publish is missing required key, '%s'", att)
+                return False
+
+        response = self._search_table_item(item, table)
 
         if response["Items"]:
             LOG.info("Item already exists in table")
@@ -147,13 +201,6 @@ class Client(object):
         return True
 
     def _do_publish(self, item, table):
-        for att in table.attribute_definitions:
-            att_name = str(att["AttributeName"])
-            if not hasattr(item, att_name) or not getattr(item, att_name):
-                raise ValueError(
-                    "Item to publish is missing required key, '%s'" % att_name
-                )
-
         if not self._should_publish(item, table):
             return
 

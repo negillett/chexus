@@ -117,10 +117,43 @@ def test_publish_without_table_key(caplog):
 
     # Table contains unexpected keys
     mocked_table.attribute_definitions = [
-        {"AttributeName": "Nope", "AttributeType": "S"}
+        {"AttributeName": "Nope", "AttributeType": "S"},
     ]
 
     with caplog.at_level(logging.DEBUG):
         client.publish(item, "test_table")
 
     assert "Item to publish is missing required key, 'Nope'" in caplog.text
+    # Should not have tried to publish
+    mocked_table.put_item.assert_not_called()
+
+
+def test_publish_error(caplog):
+    item = TableItem(key1="test", key2=1234)
+
+    client = MockedClient()
+    mocked_table = client._session.resource().Table()
+
+    # Querying the table returns a dictionary of matching record items
+    mocked_table.query.return_value = {"Items": []}
+
+    # Expected table attributes
+    mocked_table.attribute_definitions = [
+        {"AttributeName": "key1", "AttributeType": "S"},
+        {"AttributeName": "key2", "AttributeType": "S"},
+    ]
+
+    # Some internal error when attempting to put the item
+    mocked_table.put_item.side_effect = ValueError("Something went wrong")
+
+    with caplog.at_level(logging.DEBUG):
+        client.publish(item, "test_table")
+
+    # Should've checked table for existing record...
+    mocked_table.query.assert_called()
+
+    for msg in [
+        "One or more exceptions occurred during publish",
+        "Something went wrong",
+    ]:
+        assert msg in caplog.text
