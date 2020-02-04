@@ -155,23 +155,77 @@
         <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Upload complete&quot;</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_query_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_search_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
         <span class="n">expr_vals</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">key_exprs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span><span class="p">:</span>
-            <span class="n">att_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">att</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">])</span>
-            <span class="n">expr_vals</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                <span class="p">{</span><span class="s2">&quot;:</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="n">att_name</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att_name</span><span class="p">)}</span>
-            <span class="p">)</span>
-            <span class="n">key_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = :</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">att_name</span><span class="p">,</span> <span class="n">att_name</span><span class="p">))</span>
+        <span class="n">fil_exprs</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">KeyConditionExpression</span><span class="o">=</span><span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key_exprs</span><span class="p">),</span>
-            <span class="n">ExpressionAttributeValues</span><span class="o">=</span><span class="n">expr_vals</span><span class="p">,</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">expr_vals</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;:</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="n">key</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">value</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span>
+            <span class="p">]:</span>
+                <span class="n">key_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = :</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fil_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = :</span><span class="si">%s</span><span class="s2">val&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+
+        <span class="n">criteria</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;ExpressionAttributeValues&quot;</span><span class="p">:</span> <span class="n">expr_vals</span><span class="p">,</span>
+            <span class="s2">&quot;KeyConditionExpression&quot;</span><span class="p">:</span> <span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key_exprs</span><span class="p">),</span>
+            <span class="s2">&quot;Select&quot;</span><span class="p">:</span> <span class="s2">&quot;ALL_ATTRIBUTES&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">fil_exprs</span><span class="p">:</span>
+            <span class="n">criteria</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;FilterExpression&quot;</span><span class="p">:</span> <span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fil_exprs</span><span class="p">)})</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="o">**</span><span class="n">criteria</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;LastEvaluatedKey&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Query limit reached, results truncated</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Consider increasing uniqueness of key(s)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">response</span>
+
+<div class="viewcode-block" id="Client.search"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Queries the specified table for an item matching the given</span>
+<span class="sd">        TableItem.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item (:class:`~chexus.TableItem`)</span>
+<span class="sd">                A representation of a DynamoDB table item.</span>
+
+<span class="sd">            table_name (str)</span>
+<span class="sd">                The name of the table to search.</span>
+
+<span class="sd">            region (str)</span>
+<span class="sd">                The name of the AWS region the desired table belongs</span>
+<span class="sd">                to. If not provided here or to the calling client,</span>
+<span class="sd">                attempts to find it among environment variables and</span>
+<span class="sd">                configuration files will be made.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">TableItem</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Expected type &#39;TableItem&#39;, got &#39;</span><span class="si">%s</span><span class="s2">&#39; instead&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span><span class="s2">&quot;dynamodb&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
+            <span class="n">table_name</span>
         <span class="p">)</span>
 
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span></div>
+
     <span class="k">def</span> <span class="nf">_should_publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span>
+        <span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att</span><span class="p">):</span>
+                <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Item to publish is missing required key, &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">att</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;Items&quot;</span><span class="p">]:</span>
             <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Item already exists in table&quot;</span><span class="p">)</span>
@@ -180,13 +234,6 @@
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">_do_publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">attribute_definitions</span><span class="p">:</span>
-            <span class="n">att_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">att</span><span class="p">[</span><span class="s2">&quot;AttributeName&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att_name</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">att_name</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Item to publish is missing required key, &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">att_name</span>
-                <span class="p">)</span>
-
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_publish</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
             <span class="k">return</span>
 

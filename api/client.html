@@ -59,6 +59,25 @@ uploaded.</p></li>
 </dd></dl>
 
 <dl class="method">
+<dt id="chexus.Client.search">
+<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">item</em>, <em class="sig-param">table_name</em>, <em class="sig-param">region=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queries the specified table for an item matching the given
+TableItem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>item</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">TableItem</span></code>) – A representation of a DynamoDB table item.</p></li>
+<li><p><strong>table_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the table to search.</p></li>
+<li><p><strong>region</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the AWS region the desired table belongs
+to. If not provided here or to the calling client,
+attempts to find it among environment variables and
+configuration files will be made.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="chexus.Client.publish">
 <code class="sig-name descname">publish</code><span class="sig-paren">(</span><em class="sig-param">items</em>, <em class="sig-param">table_name</em>, <em class="sig-param">region=None</em>, <em class="sig-param">dryrun=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.publish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.publish" title="Permalink to this definition">¶</a></dt>
 <dd><p>Efficiently puts items into the specified DynamoDB table
