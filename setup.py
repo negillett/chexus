@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 def get_description():
-    return "A library for interacting with AWS S3 and DynamoDB"
+    return "A Python library for interacting with AWS S3 and DynamoDB"
 
 
 def get_long_description():

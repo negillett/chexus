@@ -1,11 +1,8 @@
 Models
 ======
 
-.. autoclass:: chexus.UploadItem
+.. autoclass:: chexus.BucketItem
    :members:
 
-.. autoclass:: chexus.PublishItem
-   :members:
-
-.. autoclass:: chexus.PushItem
+.. autoclass:: chexus.TableItem
    :members:
