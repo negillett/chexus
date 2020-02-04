@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import logging
+
+from chexus import Client, TableItem
+
+LOG = logging.getLogger("search-db-table")
+
+
+def main():
+    LOG.setLevel(logging.INFO)
+    logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+    parser = argparse.ArgumentParser(
+        description="Search for a match among items in a DynamoDB table."
+    )
+    parser.add_argument(
+        "--criteria",
+        required=True,
+        type=json.loads,
+        help="Criteria for the table item search in JSON string format,"
+             " e.g., '{\"key\": \"value\"}'"
+    )
+    parser.add_argument(
+        "--table",
+        required=True,
+        help="DynamoDB table in which to publish file data."
+    )
+    parser.add_argument(
+        "--aws-access-id",
+        default=None,
+        help="Access ID for Amazon services. If no ID is provided, attempts to"
+             " find it among environment variables and ~/.aws/config file will"
+             " be made"
+    )
+    parser.add_argument(
+        "--aws-access-key",
+        default=None,
+        help="Access key for Amazon services. If no key is provided, attempts"
+             " to find it among environment variables and ~/.aws/config file"
+             " will be made"
+    )
+    parser.add_argument(
+        "--aws-session-token",
+        default=None,
+        help="Session token for Amazon services. If no token is provided,"
+             " attempts to find it among environment variables and"
+             " ~/.aws/config file will be made"
+    )
+    parser.add_argument(
+        "--default-region",
+        default=None,
+        help="Default region for Amazon services. If no region is provided,"
+             " attempts to find it among environment variables and"
+             " ~/.aws/config file will be made"
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Include debug logging."
+    )
+
+    p = parser.parse_args()
+
+    if p.debug:
+        logging.getLogger("chexus").setLevel(logging.DEBUG)
+        LOG.setLevel(logging.DEBUG)
+
+    client = Client(
+        access_id=p.aws_access_id,
+        access_key=p.aws_access_key,
+        session_token=p.aws_session_token,
+        default_region=p.default_region
+    )
+
+    response = client.query(item=TableItem(**p.criteria), table_name=p.table)
+    print(json.dumps(response["Items"], indent=4, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
