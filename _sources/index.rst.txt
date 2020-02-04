@@ -1,7 +1,7 @@
 chexus
 ======
 
-A Python library for interacting with AWS S3 and DynamoDB.
+A Python library for interacting with AWS S3 and DynamoDB
 
 .. toctree::
    :maxdepth: 2
