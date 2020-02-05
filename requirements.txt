@@ -1,4 +1,4 @@
+boto3
 more-executors
 python-dateutil
-PyYAML
-boto3
+pytz

@@ -3,6 +3,7 @@ import json
 import os
 
 import dateutil
+import pytz
 
 
 class BucketItem(object):
@@ -30,11 +31,17 @@ class TableItem(object):
 
     def __init__(self, **kwargs):
         self.attrs = kwargs
+        self._set_attributes()
 
+    def _set_attributes(self):
         for key, value in self.attrs.items():
-            # Coerce any dates to a standard format
-            if "date" in key and value:
-                value = str(dateutil.parser.parse(value).date())
+            # Skip any NoneTypes
+            if not value:
+                continue
+
+            # Coerce any dates or times to a standard format
+            if "date" in key or "time" in key:
+                value = self._valid_datetime(key, value)
                 self.attrs[key] = value
 
             # Serialize any dictionaries
@@ -45,3 +52,23 @@ class TableItem(object):
             # Create class attribute from kwarg
             if not hasattr(self, key):
                 setattr(self, key, value)
+
+    @staticmethod
+    def _valid_datetime(key, value):
+        try:
+            # Parse string for datetime object
+            naive_dt = dateutil.parser.parse(value, fuzzy=True)
+            # Make the datetime timezone-aware
+            aware_dt = pytz.timezone("US/Eastern").localize(naive_dt)
+            # Convert the timezone to UTC
+            value = aware_dt.astimezone(pytz.utc)
+        except (TypeError, dateutil.parser.ParserError):
+            # String doesn't appear to be a date or time
+            return value
+
+        if "date" in key and "time" in key:
+            return str(value.isoformat())
+        if "date" in key:
+            return str(value.date().isoformat())
+        if "time" in key:
+            return str(value.time().isoformat())
