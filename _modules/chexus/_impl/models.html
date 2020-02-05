@@ -36,6 +36,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">import</span> <span class="nn">dateutil</span>
+<span class="kn">import</span> <span class="nn">pytz</span>
 
 
 <div class="viewcode-block" id="BucketItem"><a class="viewcode-back" href="../../../api/models.html#chexus.BucketItem">[docs]</a><span class="k">class</span> <span class="nc">BucketItem</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -65,19 +66,43 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">kwargs</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="c1"># Coerce any dates to a standard format</span>
-            <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">key</span> <span class="ow">and</span> <span class="n">value</span><span class="p">:</span>
-                <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize_value</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="n">value</span>
 
-            <span class="c1"># Serialize any dictionaries</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
-            <span class="c1"># Create class attribute from kwarg</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_sanitize_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># Coerce any dates, times to standard format</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_datetime</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># Serialize any dictionaries</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_valid_datetime</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Parse string for datetime object</span>
+            <span class="n">naive_dt</span> <span class="o">=</span> <span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># Make the datetime timezone-aware</span>
+            <span class="n">aware_dt</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;US/Eastern&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">naive_dt</span><span class="p">)</span>
+            <span class="c1"># Convert the timezone to UTC</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">aware_dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">ParserError</span><span class="p">):</span>
+            <span class="c1"># String doesn&#39;t appear to be a date or time</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">key</span> <span class="ow">and</span> <span class="s2">&quot;time&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="s2">&quot;time&quot;</span> <span class="ow">in</span> <span class="n">key</span> <span class="ow">and</span> <span class="s2">&quot;date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">isoformat</span><span class="p">())</span></div>
 </pre></div>
 
           </div>
