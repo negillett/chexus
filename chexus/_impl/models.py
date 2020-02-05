@@ -42,8 +42,7 @@ class TableItem(object):
 
     def _sanitize_value(self, key, value):
         # Coerce any dates, times to standard format
-        if "date" in key or "time" in key:
-            return self._valid_datetime(key, value)
+        value = self._valid_datetime(key, value)
 
         # Serialize any dictionaries
         if isinstance(value, dict):
@@ -64,10 +63,10 @@ class TableItem(object):
             # String doesn't appear to be a date or time
             return value
 
-        if "date" not in key:
-            return str(value.time().isoformat())
-
-        if "time" not in key:
+        if "date" in key and "time" not in key:
             return str(value.date().isoformat())
+
+        if "time" in key and "date" not in key:
+            return str(value.time().isoformat())
 
         return str(value.isoformat())

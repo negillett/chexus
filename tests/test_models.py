@@ -18,9 +18,9 @@ def test_table_item():
         file_path="path/to/somefile",
         file_url="www.example.com/content/path/to/somefile",
         status=None,
-        release_date="Jan. 30, 2020",
+        release_date="Feb. 1, 2020",
         release_time="12:30AM",
-        release_datetime="On Jan. 30, 2020 at 12:30AM",
+        release="On Feb. 1, 2020 at 12:30AM",
         bad_datetime="bats",
         metadata={"some": {"thing": [4, 5, 6]}},
     )
@@ -33,9 +33,9 @@ def test_table_item():
         "file_path": "path/to/somefile",
         "file_url": "www.example.com/content/path/to/somefile",
         "status": None,
-        "release_date": "2020-01-30",
+        "release_date": "2020-02-01",
         "release_time": "05:30:00",
-        "release_datetime": "2020-01-30T05:30:00+00:00",
+        "release": "2020-02-01T05:30:00+00:00",
         "bad_datetime": "bats",
         "metadata": '{"some": {"thing": [4, 5, 6]}}',
     }
