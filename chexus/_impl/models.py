@@ -31,27 +31,25 @@ class TableItem(object):
 
     def __init__(self, **kwargs):
         self.attrs = kwargs
-        self._set_attributes()
 
-    def _set_attributes(self):
         for key, value in self.attrs.items():
-            # Skip any NoneTypes
-            if not value:
-                continue
+            value = self._sanitize_value(key, value) if value else value
 
-            # Coerce any dates or times to a standard format
-            if "date" in key or "time" in key:
-                value = self._valid_datetime(key, value)
-                self.attrs[key] = value
+            self.attrs[key] = value
 
-            # Serialize any dictionaries
-            if isinstance(value, dict):
-                value = json.dumps(value)
-                self.attrs[key] = value
-
-            # Create class attribute from kwarg
             if not hasattr(self, key):
                 setattr(self, key, value)
+
+    def _sanitize_value(self, key, value):
+        # Coerce any dates, times to standard format
+        if "date" in key or "time" in key:
+            return self._valid_datetime(key, value)
+
+        # Serialize any dictionaries
+        if isinstance(value, dict):
+            return json.dumps(value)
+
+        return value
 
     @staticmethod
     def _valid_datetime(key, value):
@@ -66,9 +64,10 @@ class TableItem(object):
             # String doesn't appear to be a date or time
             return value
 
-        if "date" in key and "time" in key:
-            return str(value.isoformat())
-        if "date" in key:
-            return str(value.date().isoformat())
-        if "time" in key:
+        if "date" not in key:
             return str(value.time().isoformat())
+
+        if "time" not in key:
+            return str(value.date().isoformat())
+
+        return str(value.isoformat())
