@@ -121,6 +121,72 @@ class Client(object):
 
         LOG.info("Upload complete")
 
+    def download(self, items, bucket_name, dryrun=False):
+        """Efficiently downloads files from the specified S3 bucket.
+
+        Args:
+            items (:class:`~chexus.BucketItem`, list)
+                One or more representations of an item to download from
+                the bucket.
+
+            bucket_name (str)
+                The name of the bucket from which the file will be
+                downloaded.
+
+            dryrun (bool)
+                If true, only log what would be downloaded.
+        """
+
+        # Coerce items to list
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
+
+        bucket = self._session.resource("s3").Bucket(bucket_name)
+
+        LOG.info("Starting download...")
+
+        download_fts = []
+        for item in items:
+            if not isinstance(item, BucketItem):
+                LOG.error(
+                    "Expected type 'BucketItem', got '%s' instead", type(item),
+                )
+                continue
+
+            if dryrun:
+                LOG.info(
+                    "Would download %s from the '%s' bucket",
+                    item.name,
+                    bucket_name,
+                )
+                continue
+
+            LOG.info("Downloading %s...", item.name)
+            download_fts.append(
+                self._executor.submit(
+                    bucket.download_file, item.key, item.path
+                )
+            )
+
+        # Block until all futures have completed
+        # Not using concurrent.futures.as_completed() due to Python 2.7
+        while not all([ft.done() for ft in download_fts]):
+            time.sleep(1)
+
+        # Report any download failures as errors -- raising them could
+        # prevent other files from being downloaded
+        upload_errs = [ft.exception() for ft in download_fts]
+        # Filter possible NoneTypes
+        if [err for err in upload_errs if err]:
+            LOG.error(
+                "One or more exceptions occurred during download\n\t%s",
+                "\n\t".join(str(err) for err in upload_errs),
+            )
+
+        LOG.info("Download complete")
+
     @staticmethod
     def _search_table_item(item, table):
         expr_vals = {}

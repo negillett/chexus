@@ -7,14 +7,36 @@ import pytz
 
 
 class BucketItem(object):
-    """Represents an object in an AWS S3 bucket"""
+    """Represents an object in an AWS S3 bucket
 
-    def __init__(self, file_path, file_name=None, checksum=None):
+    Args:
+        file_path (str):
+            The path to the file.
+
+        file_name (str):
+            The Name of the file.
+            This attribute is set according to the file's path if a
+            name is not provided.
+
+        checksum (str):
+            The checksum of the file.
+            This attribute is set if a checksum is not provided and the
+            file exists.
+
+        key (str):
+            The object key of the S3 file object.
+            This attribute is set with the name attribute if no key is
+            provided.
+    """
+
+    def __init__(self, file_path, file_name=None, checksum=None, key=None):
         self.path = file_path
         self.name = file_name or os.path.basename(self.path)
-        self.checksum = checksum
+        self.checksum = checksum or self._generate_checksum()
+        self.key = key or self.name
 
-        if not self.checksum:
+    def _generate_checksum(self):
+        if os.path.isfile(self.path):
             sha256 = hashlib.sha256()
             with open(self.path, "rb") as binary:
                 while True:
@@ -23,7 +45,9 @@ class BucketItem(object):
                         break
                     sha256.update(chunk)
 
-            self.checksum = sha256.hexdigest()
+            return sha256.hexdigest()
+
+        return None
 
 
 class TableItem(object):

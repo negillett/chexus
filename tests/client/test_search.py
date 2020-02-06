@@ -6,13 +6,13 @@ from chexus import TableItem
 from . import MockedClient
 
 
-def test_query():
+def test_search():
     item = TableItem(key1=1234, attr1="hello")
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
-    # Querying the table returns a dictionary with matching items
+    # Searching the table returns a dictionary with matching items
     mocked_table.query.return_value = {
         "Items": [{"key1": 1234, "att1": "foo"}]
     }
@@ -32,7 +32,7 @@ def test_query():
     )
 
 
-def test_query_invalid_item(caplog):
+def test_search_invalid_item(caplog):
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
@@ -46,13 +46,13 @@ def test_query_invalid_item(caplog):
     mocked_table.query.assert_not_called()
 
 
-def test_query_response_too_large(caplog):
+def test_search_response_too_large(caplog):
     item = TableItem(key1=1234, attr1="hello")
 
     client = MockedClient()
     mocked_table = client._session.resource().Table()
 
-    # Querying the table returns a dictionary with matching items
+    # Searching the table returns a dictionary with matching items
     mocked_table.query.return_value = {
         "Items": ["Lots of items..."],
         "LastEvaluatedKey": {"key1": "test"},
