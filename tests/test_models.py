@@ -2,13 +2,27 @@ from chexus import BucketItem, TableItem
 
 
 def test_bucket_item():
+    # Create BucketItem
     item = BucketItem(file_path="tests/test_data/somefile.txt")
-    assert item.name == "somefile.txt"
+
+    # Should have derived name from path
     assert item.path == "tests/test_data/somefile.txt"
+    assert item.name == "somefile.txt"
+    # Should have computed, assigned checksum
     assert (
         item.checksum
         == "ee21ae5cd21ff1bb2263f7c98a8557d42646ed1ec660d9c1f7c3f4e781bc6710"
     )
+    # Should have assigned name to key
+    assert item.key == item.name
+
+
+def test_bucket_item_bad_path():
+    # Create BucketItem
+    item = BucketItem(file_path="bad/path/to/nowhere")
+
+    # Should not have set a checksum
+    assert item.checksum is None
 
 
 def test_table_item():
