@@ -154,6 +154,72 @@
 
         <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Upload complete&quot;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Client.download"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">bucket_name</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Efficiently downloads files from the specified S3 bucket.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            items (:class:`~chexus.BucketItem`, list)</span>
+<span class="sd">                One or more representations of an item to download from</span>
+<span class="sd">                the bucket.</span>
+
+<span class="sd">            bucket_name (str)</span>
+<span class="sd">                The name of the bucket from which the file will be</span>
+<span class="sd">                downloaded.</span>
+
+<span class="sd">            dryrun (bool)</span>
+<span class="sd">                If true, only log what would be downloaded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Coerce items to list</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+
+        <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">Bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
+
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting download...&quot;</span><span class="p">)</span>
+
+        <span class="n">download_fts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">BucketItem</span><span class="p">):</span>
+                <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Expected type &#39;BucketItem&#39;, got &#39;</span><span class="si">%s</span><span class="s2">&#39; instead&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
+                <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Would download </span><span class="si">%s</span><span class="s2"> from the &#39;</span><span class="si">%s</span><span class="s2">&#39; bucket&quot;</span><span class="p">,</span>
+                    <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">bucket_name</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Downloading </span><span class="si">%s</span><span class="s2">...&quot;</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">download_fts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                    <span class="n">bucket</span><span class="o">.</span><span class="n">download_file</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">path</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Block until all futures have completed</span>
+        <span class="c1"># Not using concurrent.futures.as_completed() due to Python 2.7</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">ft</span><span class="o">.</span><span class="n">done</span><span class="p">()</span> <span class="k">for</span> <span class="n">ft</span> <span class="ow">in</span> <span class="n">download_fts</span><span class="p">]):</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Report any download failures as errors -- raising them could</span>
+        <span class="c1"># prevent other files from being downloaded</span>
+        <span class="n">upload_errs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ft</span><span class="o">.</span><span class="n">exception</span><span class="p">()</span> <span class="k">for</span> <span class="n">ft</span> <span class="ow">in</span> <span class="n">download_fts</span><span class="p">]</span>
+        <span class="c1"># Filter possible NoneTypes</span>
+        <span class="k">if</span> <span class="p">[</span><span class="n">err</span> <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">upload_errs</span> <span class="k">if</span> <span class="n">err</span><span class="p">]:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;One or more exceptions occurred during download</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span> <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">upload_errs</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Download complete&quot;</span><span class="p">)</span></div>
+
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_search_table_item</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
         <span class="n">expr_vals</span> <span class="o">=</span> <span class="p">{}</span>

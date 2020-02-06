@@ -59,6 +59,23 @@ uploaded.</p></li>
 </dd></dl>
 
 <dl class="method">
+<dt id="chexus.Client.download">
+<code class="sig-name descname">download</code><span class="sig-paren">(</span><em class="sig-param">items</em>, <em class="sig-param">bucket_name</em>, <em class="sig-param">dryrun=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Efficiently downloads files from the specified S3 bucket.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>items</strong> (<a class="reference internal" href="models.html#chexus.BucketItem" title="chexus.BucketItem"><code class="xref py py-class docutils literal notranslate"><span class="pre">BucketItem</span></code></a>, list) – One or more representations of an item to download from
+the bucket.</p></li>
+<li><p><strong>bucket_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the bucket from which the file will be
+downloaded.</p></li>
+<li><p><strong>dryrun</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If true, only log what would be downloaded.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="chexus.Client.search">
 <code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">item</em>, <em class="sig-param">table_name</em>, <em class="sig-param">region=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries the specified table for an item matching the given

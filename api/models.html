@@ -35,8 +35,24 @@
 <h1>Models<a class="headerlink" href="#models" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="chexus.BucketItem">
-<em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">BucketItem</code><span class="sig-paren">(</span><em class="sig-param">file_path</em>, <em class="sig-param">file_name=None</em>, <em class="sig-param">checksum=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/models.html#BucketItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.BucketItem" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">BucketItem</code><span class="sig-paren">(</span><em class="sig-param">file_path</em>, <em class="sig-param">file_name=None</em>, <em class="sig-param">checksum=None</em>, <em class="sig-param">key=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/models.html#BucketItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.BucketItem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Represents an object in an AWS S3 bucket</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The path to the file.</p></li>
+<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The Name of the file.
+This attribute is set according to the file’s path if a
+name is not provided.</p></li>
+<li><p><strong>checksum</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The checksum of the file.
+This attribute is set if a checksum is not provided and the
+file exists.</p></li>
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The object key of the S3 file object.
+This attribute is set with the name attribute if no key is
+provided.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="class">

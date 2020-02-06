@@ -40,14 +40,36 @@
 
 
 <div class="viewcode-block" id="BucketItem"><a class="viewcode-back" href="../../../api/models.html#chexus.BucketItem">[docs]</a><span class="k">class</span> <span class="nc">BucketItem</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Represents an object in an AWS S3 bucket&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Represents an object in an AWS S3 bucket</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checksum</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="sd">    Args:</span>
+<span class="sd">        file_path (str):</span>
+<span class="sd">            The path to the file.</span>
+
+<span class="sd">        file_name (str):</span>
+<span class="sd">            The Name of the file.</span>
+<span class="sd">            This attribute is set according to the file&#39;s path if a</span>
+<span class="sd">            name is not provided.</span>
+
+<span class="sd">        checksum (str):</span>
+<span class="sd">            The checksum of the file.</span>
+<span class="sd">            This attribute is set if a checksum is not provided and the</span>
+<span class="sd">            file exists.</span>
+
+<span class="sd">        key (str):</span>
+<span class="sd">            The object key of the S3 file object.</span>
+<span class="sd">            This attribute is set with the name attribute if no key is</span>
+<span class="sd">            provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checksum</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">file_path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">file_name</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="n">checksum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="n">checksum</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_checksum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_generate_checksum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
             <span class="n">sha256</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">binary</span><span class="p">:</span>
                 <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -56,7 +78,9 @@
                         <span class="k">break</span>
                     <span class="n">sha256</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="n">sha256</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+            <span class="k">return</span> <span class="n">sha256</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="TableItem"><a class="viewcode-back" href="../../../api/models.html#chexus.TableItem">[docs]</a><span class="k">class</span> <span class="nc">TableItem</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
