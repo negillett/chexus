@@ -43,19 +43,19 @@ class Client(object):
         ).with_retry(max_attempts=retry_count)
 
     @staticmethod
-    def _should_upload(checksum, bucket):
-        if list(bucket.objects.filter(Prefix=checksum)):
+    def _should_upload(key, bucket):
+        if list(bucket.objects.filter(Prefix=key)):
             LOG.info("Item already in s3 bucket")
             return False
         return True
 
     def _do_upload(self, item, bucket):
-        if not self._should_upload(item.checksum, bucket):
+        if not self._should_upload(item.key, bucket):
             return
 
         LOG.info("Uploading %s...", item.name)
 
-        bucket.upload_file(item.path, item.checksum)
+        bucket.upload_file(item.path, item.key)
 
     def upload(self, items, bucket_name, dryrun=False):
         """Efficiently uploads files into the specified S3 bucket

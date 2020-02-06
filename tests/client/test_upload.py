@@ -28,8 +28,8 @@ def test_upload(dryrun, caplog):
         client.upload(items, "test_bucket", dryrun=dryrun)
 
     # Expected calls to Bucket methods objects.filters and upload_file
-    objects_calls = [mock.call(Prefix=item.checksum) for item in items]
-    upload_calls = [mock.call(item.path, item.checksum) for item in items]
+    objects_calls = [mock.call(Prefix=item.key) for item in items]
+    upload_calls = [mock.call(item.path, item.key) for item in items]
 
     if dryrun:
         # Should've only logged what would've been done
@@ -63,19 +63,14 @@ def test_upload_duplicate(caplog):
 
     # Searching for the file returns an iterable of matches
     mocked_bucket.objects.filter.return_value = [
-        {
-            "ObjectSummary_obj": {
-                "key": item.checksum,
-                "bucket": "mocked_bucket",
-            }
-        },
+        {"ObjectSummary_obj": {"key": item.key, "bucket": "mocked_bucket"}},
     ]
 
     with caplog.at_level(logging.DEBUG):
         client.upload(item, "mocked_bucket")
 
     # Should've checked bucket for duplicate file...
-    mocked_bucket.objects.filter.assert_called_with(Prefix=item.checksum)
+    mocked_bucket.objects.filter.assert_called_with(Prefix=item.key)
     # ...and found one
     assert "Item already in s3 bucket" in caplog.text
     # Should not have tried to upload

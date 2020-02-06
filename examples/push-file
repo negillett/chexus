@@ -101,6 +101,8 @@ def main():
     )
 
     upl_item = BucketItem(file_path=p.file_path)
+    upl_item.key = upl_item.checksum
+
     pub_item = TableItem(
         object_key=upl_item.checksum,
         web_uri=p.dest_uri,
