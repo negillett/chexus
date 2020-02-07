@@ -51,7 +51,15 @@ class BucketItem(object):
 
 
 class TableItem(object):
-    """Represents an item in an AWS DynamoDB table"""
+    """Represents an item in an AWS DynamoDB table.
+
+    Args:
+        kwargs
+            Keyword arguments from which to create attributes.
+            Dictionary values are converted to JSON strings.
+            Values able to be parsed as dates and/or times are
+            converted to UTC timezone, ISO format datetime strings.
+    """
 
     def __init__(self, **kwargs):
         self.attrs = kwargs
