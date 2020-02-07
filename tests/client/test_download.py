@@ -3,6 +3,7 @@ import logging
 import mock
 import pytest
 from botocore.exceptions import ClientError
+
 from chexus import BucketItem, TableItem
 from .mocked_client import MockedClient
 

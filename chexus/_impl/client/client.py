@@ -13,8 +13,36 @@ LOG = logging.getLogger("chexus")
 class Client(object):
     """A client for interacting with Amazon S3 and DynamoDB.
 
-    This class provides methods for uploading files to an S3 bucket
-    and putting items into a DynamoDB table.
+    This class provides methods for uploading to and downloading from
+    an S3 bucket and methods for searching for and putting items into a
+    DynamoDB table.
+
+    Args:
+        access_id (str)
+            Access ID for Amazon services. If no ID is provided,
+            attempts to find it among environment variables and
+            configuration files will be made.
+
+        access_key (str)
+            Access key for Amazon services. If no key is provided,
+            attempts to find it among environment variables and
+            configuration files will be made.
+
+        session_token (str)
+            Session token for Amazon services. If no token is provided,
+            attempts to find it among environment variables and
+            configuration files will be made.
+
+        default_region (str)
+            Default region for Amazon services. If no region is
+            provided, attempts to find it among environment variables
+            and configuration files will be made.
+
+        workers_count (int)
+            Maximum number of threads in which a task may be executed.
+
+        retry_count (int)
+            Maximum number of times to retry a failed task.
     """
 
     def __init__(
