@@ -46,8 +46,36 @@
 <div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../../../api/client.html#chexus.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A client for interacting with Amazon S3 and DynamoDB.</span>
 
-<span class="sd">    This class provides methods for uploading files to an S3 bucket</span>
-<span class="sd">    and putting items into a DynamoDB table.</span>
+<span class="sd">    This class provides methods for uploading to and downloading from</span>
+<span class="sd">    an S3 bucket and methods for searching for and putting items into a</span>
+<span class="sd">    DynamoDB table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        access_id (str)</span>
+<span class="sd">            Access ID for Amazon services. If no ID is provided,</span>
+<span class="sd">            attempts to find it among environment variables and</span>
+<span class="sd">            configuration files will be made.</span>
+
+<span class="sd">        access_key (str)</span>
+<span class="sd">            Access key for Amazon services. If no key is provided,</span>
+<span class="sd">            attempts to find it among environment variables and</span>
+<span class="sd">            configuration files will be made.</span>
+
+<span class="sd">        session_token (str)</span>
+<span class="sd">            Session token for Amazon services. If no token is provided,</span>
+<span class="sd">            attempts to find it among environment variables and</span>
+<span class="sd">            configuration files will be made.</span>
+
+<span class="sd">        default_region (str)</span>
+<span class="sd">            Default region for Amazon services. If no region is</span>
+<span class="sd">            provided, attempts to find it among environment variables</span>
+<span class="sd">            and configuration files will be made.</span>
+
+<span class="sd">        workers_count (int)</span>
+<span class="sd">            Maximum number of threads in which a tasks may be executed.</span>
+
+<span class="sd">        retry_count (int)</span>
+<span class="sd">            Maximum number of times to retry a failed task.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>

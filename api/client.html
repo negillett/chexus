@@ -38,8 +38,29 @@
 <dt id="chexus.Client">
 <em class="property">class </em><code class="sig-prename descclassname">chexus.</code><code class="sig-name descname">Client</code><span class="sig-paren">(</span><em class="sig-param">access_id=None</em>, <em class="sig-param">access_key=None</em>, <em class="sig-param">session_token=None</em>, <em class="sig-param">default_region=None</em>, <em class="sig-param">workers_count=4</em>, <em class="sig-param">retry_count=3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client" title="Permalink to this definition">¶</a></dt>
 <dd><p>A client for interacting with Amazon S3 and DynamoDB.</p>
-<p>This class provides methods for uploading files to an S3 bucket
-and putting items into a DynamoDB table.</p>
+<p>This class provides methods for uploading to and downloading from
+an S3 bucket and methods for searching for and putting items into a
+DynamoDB table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>access_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Access ID for Amazon services. If no ID is provided,
+attempts to find it among environment variables and
+configuration files will be made.</p></li>
+<li><p><strong>access_key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Access key for Amazon services. If no key is provided,
+attempts to find it among environment variables and
+configuration files will be made.</p></li>
+<li><p><strong>session_token</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Session token for Amazon services. If no token is provided,
+attempts to find it among environment variables and
+configuration files will be made.</p></li>
+<li><p><strong>default_region</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Default region for Amazon services. If no region is
+provided, attempts to find it among environment variables
+and configuration files will be made.</p></li>
+<li><p><strong>workers_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Maximum number of threads in which a tasks may be executed.</p></li>
+<li><p><strong>retry_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Maximum number of times to retry a failed task.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="method">
 <dt id="chexus.Client.upload">
 <code class="sig-name descname">upload</code><span class="sig-paren">(</span><em class="sig-param">items</em>, <em class="sig-param">bucket_name</em>, <em class="sig-param">dryrun=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chexus/_impl/client/client.html#Client.upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chexus.Client.upload" title="Permalink to this definition">¶</a></dt>
