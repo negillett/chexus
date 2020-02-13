@@ -3,11 +3,13 @@
 import argparse
 import json
 import logging
+import os
 
 from chexus import Client, BucketItem, TableItem
+
 from utils import cdn_path
 
-LOG = logging.getLogger("push-file")
+LOG = logging.getLogger("push-repo")
 
 
 def main():
@@ -19,7 +21,16 @@ def main():
         " about it in a DynamoDB table."
     )
     parser.add_argument(
-        "--file-path", required=True, help="Local filesystem path to the file."
+        "--local-repo",
+        required=True,
+        help="Local filesystem path to a valid yum or ISO repo.",
+    )
+    parser.add_argument(
+        "--dest-repo",
+        required=True,
+        help="Target path to yum or ISO repo on remote host,"
+        ' e.g., "/content/dist/rhel8/8/exodus/os" or'
+        ' "/content/dist/rhel8/8/exodus/iso"',
     )
     parser.add_argument(
         "--file-metadata",
@@ -90,18 +101,36 @@ def main():
         default_region=p.default_region,
     )
 
-    upl_item = BucketItem(file_path=p.file_path)
-    upl_item.key = upl_item.checksum
+    for root_dir, subdir_list, file_list in os.walk(p.local_repo):
+        for file_name in file_list:
+            file_path = os.path.join(root_dir, file_name)
+            upl_item = BucketItem(file_path)
+            upl_item.key = upl_item.checksum
 
-    pub_item = TableItem(
-        object_key=upl_item.checksum,
-        web_uri=cdn_path(upl_item.name, p.file_path, upl_item.checksum),
-        from_date=p.release_date,
-        metadata=p.file_metadata,
-    )
+            origin_item = TableItem(
+                object_key=upl_item.checksum,
+                web_uri=cdn_path(upl_item.name, file_path, upl_item.checksum),
+                from_date=p.release_date,
+                metadata=p.file_metadata,
+            )
 
-    client.upload(items=upl_item, bucket_name=p.bucket, dryrun=p.dryrun)
-    client.publish(items=pub_item, table_name=p.table, dryrun=p.dryrun)
+            rel_file_path = os.path.relpath(file_path, p.local_repo)
+            repo_item = TableItem(
+                object_key=upl_item.checksum,
+                web_uri=os.path.join(p.dest_repo, rel_file_path),
+                from_date=p.release_date,
+                metadata=p.file_metadata,
+            )
+
+            client.upload(
+                items=upl_item, bucket_name=p.bucket, dryrun=p.dryrun
+            )
+            client.publish(
+                items=origin_item, table_name=p.table, dryrun=p.dryrun
+            )
+            client.publish(
+                items=repo_item, table_name=p.table, dryrun=p.dryrun
+            )
 
 
 if __name__ == "__main__":
