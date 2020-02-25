@@ -86,7 +86,7 @@ class TableItem(object):
     def _valid_datetime(value):
         try:
             # Parse string for datetime object
-            naive_dt = dateutil.parser.parse(value, fuzzy=True)
+            naive_dt = dateutil.parser.parse(value)
             # Make datetime timezone-aware
             aware_dt = pytz.timezone("US/Eastern").localize(naive_dt)
             # Convert timezone to UTC
