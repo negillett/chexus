@@ -34,6 +34,7 @@ class BucketItem(object):
         self.name = file_name or os.path.basename(self.path)
         self.checksum = checksum or self._generate_checksum()
         self.key = key or self.name
+        self.content_type = self._generate_content_type()
 
     def _generate_checksum(self):
         if os.path.isfile(self.path):
@@ -48,6 +49,17 @@ class BucketItem(object):
             return sha256.hexdigest()
 
         return None
+
+    def _generate_content_type(self):
+        ext = os.path.splitext(self.path)[1]
+        if ext == ".xml":
+            return {"ContentType": "application/xml"}
+        if ext == ".gz":
+            return {"ContentType": "application/x-gzip"}
+        if ext == ".bz2":
+            return {"ContentType": "application/x-bzip"}
+
+        return {}
 
 
 class TableItem(object):

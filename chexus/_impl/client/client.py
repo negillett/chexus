@@ -83,7 +83,7 @@ class Client(object):
 
         LOG.info("Uploading %s...", item.name)
 
-        bucket.upload_file(item.path, item.key)
+        bucket.upload_file(item.path, item.key, ExtraArgs=item.content_type)
 
     def upload(self, items, bucket_name, dryrun=False):
         """Efficiently uploads files into the specified S3 bucket
@@ -116,7 +116,7 @@ class Client(object):
         for item in items:
             if not isinstance(item, BucketItem):
                 LOG.error(
-                    "Expected type 'BucketItem', got '%s' instead", type(item),
+                    "Expected type 'BucketItem', got '%s' instead", type(item)
                 )
                 continue
 
@@ -179,7 +179,7 @@ class Client(object):
         for item in items:
             if not isinstance(item, BucketItem):
                 LOG.error(
-                    "Expected type 'BucketItem', got '%s' instead", type(item),
+                    "Expected type 'BucketItem', got '%s' instead", type(item)
                 )
                 continue
 
@@ -345,7 +345,7 @@ class Client(object):
         for item in items:
             if not isinstance(item, TableItem):
                 LOG.error(
-                    "Expected type 'TableItem', got '%s' instead", type(item),
+                    "Expected type 'TableItem', got '%s' instead", type(item)
                 )
                 continue
 

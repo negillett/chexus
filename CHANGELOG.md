@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- N/A
+### Added
+- Added BucketItem's "get_headers" method
+- Added tests for BucketItem's "get_headers" method
+
+### Changed
+- Added "headers" attribute to BucketItem
+- Updated existing tests to incorporate "headers" attribute
+- Made upload use new BucketItem "headers" attribute
 
 ## [2.1.0] - 2020-02-07
 
