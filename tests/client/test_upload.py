@@ -16,6 +16,9 @@ def test_upload(dryrun, caplog):
         BucketItem("tests/test_data/somefile.txt"),
         BucketItem("tests/test_data/somefile2.txt"),
         BucketItem("tests/test_data/somefile3.txt"),
+        BucketItem("tests/test_data/repodata.xml"),
+        BucketItem("tests/test_data/primary.gz"),
+        BucketItem("tests/test_data/primary.bz2"),
     )
 
     client = MockedClient()
@@ -29,11 +32,22 @@ def test_upload(dryrun, caplog):
 
     # Expected calls to Bucket methods objects.filters and upload_file
     objects_calls = [mock.call(Prefix=item.key) for item in items]
-    upload_calls = [mock.call(item.path, item.key) for item in items]
+    upload_calls = [
+        mock.call(item.path, item.key, ExtraArgs=item.content_type)
+        for item in items
+    ]
 
     if dryrun:
         # Should've only logged what would've been done
-        for msg in ["Would upload", "somefile.txt", "somefile2.txt"]:
+        for msg in [
+            "Would upload",
+            "somefile.txt",
+            "somefile2.txt",
+            "somefile3.txt",
+            "repodata.xml",
+            "primary.gz",
+            "primary.bz2",
+        ]:
             assert msg in caplog.text
         mocked_bucket.upload_file.assert_not_called()
     else:
@@ -63,7 +77,7 @@ def test_upload_duplicate(caplog):
 
     # Searching for the file returns an iterable of matches
     mocked_bucket.objects.filter.return_value = [
-        {"ObjectSummary_obj": {"key": item.key, "bucket": "mocked_bucket"}},
+        {"ObjectSummary_obj": {"key": item.key, "bucket": "mocked_bucket"}}
     ]
 
     with caplog.at_level(logging.DEBUG):

@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import date
 
 from chexus import BucketItem, TableItem
@@ -27,6 +29,20 @@ def test_bucket_item_bad_path():
     assert item.checksum is None
 
 
+@pytest.mark.parametrize(
+    "path,content_type",
+    [
+        ("tests/test_data/repodata.xml", {"ContentType": "application/xml"}),
+        ("tests/test_data/primary.bz2", {"ContentType": "application/x-bzip"}),
+        ("tests/test_data/primary.gz", {"ContentType": "application/x-gzip"}),
+        ("tests/test_data/somefile.txt", {}),
+    ],
+)
+def test_bucket_item_get_content_type(path, content_type):
+    item = BucketItem(file_path=path)
+    assert item.content_type == content_type
+
+
 def test_table_item():
     # Create TableItem
     item = TableItem(
@@ -50,7 +66,7 @@ def test_table_item():
         "file_url": "www.example.com/content/path/to/somefile",
         "status": None,
         "release_date": "2020-02-01T05:00:00",
-        "release_time": "%sT05:30:00" % date.today(),
+        "release_time": "%sT04:30:00" % date.today(),
         "release": "2020-02-01T05:30:00",
         "bad_datetime": "bats",
         "metadata": '{"some": {"thing": [4, 5, 6]}}',
