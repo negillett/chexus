@@ -3,7 +3,6 @@ import json
 import os
 
 import dateutil
-import pytz
 
 
 class BucketItem(object):
@@ -67,10 +66,10 @@ class TableItem(object):
 
     Args:
         kwargs
-            Keyword arguments from which to create attributes.
+            Keyword arguments from which attributes are created.
             Dictionary values are converted to JSON strings.
             Values able to be parsed as dates and/or times are
-            converted to UTC timezone, ISO format datetime strings.
+            converted to ISO format datetime strings.
     """
 
     def __init__(self, **kwargs):
@@ -86,7 +85,7 @@ class TableItem(object):
 
     def _sanitize_value(self, value):
         # Coerce any dates, times to standard format
-        value = self._valid_datetime(value)
+        value = self._parse_datetime(value)
 
         # Serialize any dictionaries
         if isinstance(value, dict):
@@ -95,16 +94,9 @@ class TableItem(object):
         return value
 
     @staticmethod
-    def _valid_datetime(value):
+    def _parse_datetime(value):
         try:
-            # Parse string for datetime object
-            naive_dt = dateutil.parser.parse(value)
-            # Make datetime timezone-aware
-            aware_dt = pytz.timezone("US/Eastern").localize(naive_dt)
-            # Convert timezone to UTC
-            value = aware_dt.astimezone(pytz.utc).replace(tzinfo=None)
-            # Apply final formatting
-            return value.replace(tzinfo=None).isoformat()
+            return dateutil.parser.parse(value).isoformat()
         except (TypeError, ValueError):
             # String doesn't appear to be a date or time
             return value

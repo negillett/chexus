@@ -65,9 +65,9 @@ def test_table_item():
         "file_path": "path/to/somefile",
         "file_url": "www.example.com/content/path/to/somefile",
         "status": None,
-        "release_date": "2020-02-01T05:00:00",
-        "release_time": "%sT04:30:00" % date.today(),
-        "release": "2020-02-01T05:30:00",
+        "release_date": "2020-02-01T00:00:00",
+        "release_time": "%sT00:30:00" % date.today(),
+        "release": "2020-02-01T00:30:00",
         "bad_datetime": "bats",
         "metadata": '{"some": {"thing": [4, 5, 6]}}',
     }
