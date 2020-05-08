@@ -71,19 +71,35 @@ class Client(object):
         ).with_retry(max_attempts=retry_count)
 
     @staticmethod
+    def _to_list(items):
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        if isinstance(items, tuple):
+            items = list(items)
+        return items
+
+    @staticmethod
+    def _wait_for_futures(futures_list):
+        # Not using concurrent.futures.as_completed() due to Python 2.7
+        while not all([ft.done() for ft in futures_list]):
+            time.sleep(1)
+
+        # Report any failures as errors -- raising them could
+        # prevent other files from uploading
+        errors = [ft.exception() for ft in futures_list]
+        # Filter possible NoneTypes
+        if [err for err in errors if err]:
+            LOG.error(
+                "One or more exceptions occurred during last operation;\n\t%s",
+                "\n\t".join(str(err) for err in errors),
+            )
+
+    @staticmethod
     def _should_upload(key, bucket):
         if list(bucket.objects.filter(Prefix=key)):
             LOG.info("Item already in s3 bucket")
             return False
         return True
-
-    def _do_upload(self, item, bucket):
-        if not self._should_upload(item.key, bucket):
-            return
-
-        LOG.info("Uploading %s...", item.name)
-
-        bucket.upload_file(item.path, item.key, ExtraArgs=item.content_type)
 
     def upload(self, items, bucket_name, dryrun=False):
         """Efficiently uploads files into the specified S3 bucket
@@ -102,22 +118,19 @@ class Client(object):
                 If true, only log what would be uploaded.
         """
 
-        # Coerce items to list
-        if not isinstance(items, (list, tuple)):
-            items = [items]
-        if isinstance(items, tuple):
-            items = list(items)
-
         bucket = self._session.resource("s3").Bucket(bucket_name)
 
         LOG.info("Starting upload...")
 
-        upload_fts = []
-        for item in items:
+        futures = []
+        for item in self._to_list(items):
             if not isinstance(item, BucketItem):
                 LOG.error(
                     "Expected type 'BucketItem', got '%s' instead", type(item)
                 )
+                continue
+
+            if not self._should_upload(item.key, bucket):
                 continue
 
             if dryrun:
@@ -128,25 +141,16 @@ class Client(object):
                 )
                 continue
 
-            upload_fts.append(
-                self._executor.submit(self._do_upload, item, bucket)
+            futures.append(
+                self._executor.submit(
+                    bucket.upload_file,
+                    item.path,
+                    item.key,
+                    ExtraArgs=item.content_type,
+                )
             )
 
-        # Block until all futures have completed
-        # Not using concurrent.futures.as_completed() due to Python 2.7
-        while not all([ft.done() for ft in upload_fts]):
-            time.sleep(1)
-
-        # Report any upload failures as errors -- raising them could
-        # prevent other files from uploading
-        upload_errs = [ft.exception() for ft in upload_fts]
-        # List of errors can contain None types, which aren't helpful
-        if [err for err in upload_errs if err]:
-            LOG.error(
-                "One or more exceptions occurred during upload\n\t%s",
-                "\n\t".join(str(err) for err in upload_errs),
-            )
-
+        self._wait_for_futures(futures)
         LOG.info("Upload complete")
 
     def download(self, items, bucket_name, dryrun=False):
@@ -165,18 +169,12 @@ class Client(object):
                 If true, only log what would be downloaded.
         """
 
-        # Coerce items to list
-        if not isinstance(items, (list, tuple)):
-            items = [items]
-        if isinstance(items, tuple):
-            items = list(items)
-
         bucket = self._session.resource("s3").Bucket(bucket_name)
 
         LOG.info("Starting download...")
 
-        download_fts = []
-        for item in items:
+        futures = []
+        for item in self._to_list(items):
             if not isinstance(item, BucketItem):
                 LOG.error(
                     "Expected type 'BucketItem', got '%s' instead", type(item)
@@ -191,28 +189,13 @@ class Client(object):
                 )
                 continue
 
-            LOG.info("Downloading %s...", item.name)
-            download_fts.append(
+            futures.append(
                 self._executor.submit(
                     bucket.download_file, item.key, item.path
                 )
             )
 
-        # Block until all futures have completed
-        # Not using concurrent.futures.as_completed() due to Python 2.7
-        while not all([ft.done() for ft in download_fts]):
-            time.sleep(1)
-
-        # Report any download failures as errors -- raising them could
-        # prevent other files from being downloaded
-        upload_errs = [ft.exception() for ft in download_fts]
-        # Filter possible NoneTypes
-        if [err for err in upload_errs if err]:
-            LOG.error(
-                "One or more exceptions occurred during download\n\t%s",
-                "\n\t".join(str(err) for err in upload_errs),
-            )
-
+        self._wait_for_futures(futures)
         LOG.info("Download complete")
 
     @staticmethod
@@ -272,9 +255,8 @@ class Client(object):
                 "Expected type 'TableItem', got '%s' instead" % type(item)
             )
 
-        table = self._session.resource("dynamodb", region_name=region).Table(
-            table_name
-        )
+        db_resource = self._session.resource("dynamodb", region_name=region)
+        table = db_resource.Table(table_name)
 
         return self._search_table_item(item, table)
 
@@ -293,18 +275,6 @@ class Client(object):
             return False
 
         return True
-
-    def _do_publish(self, item, table):
-        if not self._should_publish(item, table):
-            return
-
-        LOG.info(
-            "Putting the following item into the '%s' table;\n\t%s",
-            table.name,
-            json.dumps(item.attrs, sort_keys=True, indent=4),
-        )
-
-        table.put_item(Item=item.attrs)
 
     def publish(self, items, table_name, region=None, dryrun=False):
         """Efficiently puts items into the specified DynamoDB table
@@ -329,24 +299,20 @@ class Client(object):
                 If true, only log what would be published.
         """
 
-        # Coerce items to list
-        if not isinstance(items, (list, tuple)):
-            items = [items]
-        if isinstance(items, tuple):
-            items = list(items)
-
-        table = self._session.resource("dynamodb", region_name=region).Table(
-            table_name
-        )
+        db_resource = self._session.resource("dynamodb", region_name=region)
+        table = db_resource.Table(table_name)
 
         LOG.info("Starting publish...")
 
-        publish_fts = []
-        for item in items:
+        futures = []
+        for item in self._to_list(items):
             if not isinstance(item, TableItem):
                 LOG.error(
                     "Expected type 'TableItem', got '%s' instead", type(item)
                 )
+                continue
+
+            if not self._should_publish(item, table):
                 continue
 
             if dryrun:
@@ -357,23 +323,148 @@ class Client(object):
                 )
                 continue
 
-            publish_fts.append(
-                self._executor.submit(self._do_publish, item, table)
+            futures.append(
+                self._executor.submit(table.put_item, Item=item.attrs)
             )
 
-        # Block until all futures have completed
-        # Not using concurrent.futures.as_completed() due to Python 2.7
-        while not all([ft.done() for ft in publish_fts]):
-            time.sleep(1)
-
-        # Report any publish failures as errors -- raising them could
-        # prevent other items from being published
-        publish_errs = [ft.exception() for ft in publish_fts]
-        # Filter possible NoneTypes
-        if [err for err in publish_errs if err]:
-            LOG.error(
-                "One or more exceptions occurred during publish\n\t%s",
-                "\n\t".join(str(err) for err in publish_errs),
-            )
-
+        self._wait_for_futures(futures)
         LOG.info("Publish complete")
+
+    def remove_bucket_items(self, items, bucket_name=None, dryrun=False):
+        """Removes the given items from the specified S3 bucket.
+
+        Args:
+            items (list, :class:`~chexus.BucketItem`)
+                One or more representations of an item to remove from a
+                table and/or bucket.
+
+            bucket_name (str)
+                The name of the bucket to which the item will be
+                uploaded.
+
+            dryrun (bool)
+                If true, only log what would be removed.
+        """
+
+        items = self._to_list(items)
+        bucket_items = [item for item in items if isinstance(item, BucketItem)]
+        non_bucket_items = [item for item in items if item not in bucket_items]
+
+        if non_bucket_items:
+            LOG.error(
+                "Expected type 'BucketItem', got the following instead: %s",
+                ", ".join(type(item) for item in non_bucket_items),
+            )
+
+        LOG.info("Starting removal...")
+
+        futures = []
+
+        assert bucket_name
+        bucket = self._session.resource("s3").Bucket(bucket_name)
+
+        item_keys = [item.key for item in bucket_items]
+        key_list = "\n\t".join(item_keys)
+
+        if dryrun:
+            LOG.info(
+                "Would remove the following items from the %s bucket;\n\t%s",
+                bucket_name,
+                key_list,
+            )
+        else:
+            LOG.info("Removing the following items;\n\t%s", key_list)
+            futures.append(
+                self._executor.submit(
+                    bucket.delete_objects,
+                    Delete={"Object": [{"Key": key} for key in item_keys]},
+                )
+            )
+
+        self._wait_for_futures(futures)
+        LOG.info("Removal complete")
+
+    def remove_table_items(
+        self, items, table_name=None, region=None, dryrun=False
+    ):
+        """Removes the given items from their respective storage locations.
+
+        Args:
+            items (
+                list, :class:`~chexus.TableItem`, :class:`~chexus.BucketItem`
+            )
+                One or more representations of an item to remove from a
+                table and/or bucket.
+
+            table_name (str)
+                The name of the table in which the item will be
+                published.
+
+            region (str)
+                The name of the AWS region the desired table belongs
+                to. If not provided here or to the calling client,
+                attempts to find it among environment variables and
+                configuration files will be made.
+
+            dryrun (bool)
+                If true, only log what would be removed.
+        """
+
+        items = self._to_list(items)
+        table_items = [item for item in items if isinstance(item, TableItem)]
+        non_table_items = [item for item in items if item not in table_items]
+
+        if non_table_items:
+            LOG.error(
+                "Expected type 'TableItem', got the following instead: %s",
+                ", ".join(type(item) for item in non_table_items),
+            )
+
+        LOG.info("Starting removal...")
+
+        futures = []
+        if table_items:
+            assert table_name
+            db_client = self._session.client("dynamodb", region_name=region)
+            table_desc = db_client.describe_table(TableName=table_name)
+
+            # Identify primary key name
+            key_name = [
+                key["AttributeName"]
+                for key in table_desc["Table"]["KeySchema"]
+                if key["KeyType"] == "HASH"
+            ][0]
+            # Identify primary key type
+            key_type = [
+                d["AttributeType"]
+                for d in table_desc["Table"]["AttributeDefinitions"]
+                if d["AttributeName"] == key_name
+            ][0]
+
+            # String-friendly list of items
+            item_list = "\n\t".join(
+                [
+                    json.dumps(item.attrs, sort_keys=True, indent=4)
+                    for item in table_items
+                ]
+            )
+
+            if dryrun:
+                LOG.info(
+                    "Would remove the following items from the %s table;\n\t%s",
+                    table_name,
+                    item_list,
+                )
+            else:
+                LOG.info("Removing the following items;\n\t%s", item_list)
+                futures.append(
+                    self._executor.submit(
+                        db_client.delete_item,
+                        TableName=table_name,
+                        Key={key_name: {key_type: getattr(item, key_name)}},
+                    )
+                    for item in table_items
+                )
+
+        self._wait_for_futures(futures)
+        LOG.info("Removal complete")

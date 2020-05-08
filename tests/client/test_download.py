@@ -87,7 +87,7 @@ def test_download_exceptions(caplog):
         client.download(item, "test_bucket")
 
     for msg in [
-        "One or more exceptions occurred during download",
+        "One or more exceptions occurred during last operation",
         "An error occurred (404) when calling the download operation: Unknown",
     ]:
         assert msg in caplog.text

@@ -58,7 +58,7 @@ def test_upload(dryrun, caplog):
 
         # ...and proceeded with upload
         assert "Content already present in s3 bucket" not in caplog.text
-
+        print(mocked_bucket.upload_file.call_args_list)
         # Should've uploaded
         mocked_bucket.upload_file.assert_has_calls(
             upload_calls, any_order=True
@@ -140,7 +140,7 @@ def test_upload_exceptions(caplog):
         client.upload(items, "test_bucket")
 
     for msg in [
-        "One or more exceptions occurred during upload",
+        "One or more exceptions occurred during last operation",
         "Error uploading somefile3.txt",
         "Error uploading somefile2.txt",
     ]:

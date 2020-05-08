@@ -153,7 +153,7 @@ def test_publish_error(caplog):
     mocked_table.query.assert_called()
 
     for msg in [
-        "One or more exceptions occurred during publish",
+        "One or more exceptions occurred during last operation",
         "Something went wrong",
     ]:
         assert msg in caplog.text
