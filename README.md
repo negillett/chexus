@@ -9,17 +9,6 @@ A Python library for interacting with AWS S3 and DynamoDB
 
 - [Source](https://github.com/nathanegillett/chexus)
 - [Documentation](https://nathanegillett.github.io/chexus)
-- [PyPI](https://pypi.org/project/chexus)
-
-Installation
-------------
-
-Install the chexus package from PyPI.
-
-```
-pip install chexus
-```
-
 
 Usage Example
 -------------
