@@ -3,7 +3,6 @@ chexus
 
 A Python library for interacting with AWS S3 and DynamoDB
 
-[![PyPI version](https://badge.fury.io/py/chexus.svg)](https://badge.fury.io/py/chexus)
 [![Build Status](https://travis-ci.org/nathanegillett/chexus.svg?branch=master)](https://travis-ci.org/nathanegillett/chexus)
 [![Coverage Status](https://coveralls.io/repos/github/nathanegillett/chexus/badge.svg?branch=master)](https://coveralls.io/github/nathanegillett/chexus?branch=master)
 
